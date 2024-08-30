@@ -1,0 +1,51 @@
+const { Cart } = require("../../models/index");
+
+// 장바구니 페이지 이동(장바구니 내역 조회)
+exports.getCartPage = async (req, res) => {
+  try {
+    // 로그인 여부 체크
+
+    const { userId } = req.params;
+    const cartList = await Cart.findAll({
+      where: { userId },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// 장바구니 등록
+exports.insertCart = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // userId는 session에서
+    const { userId } = req.body;
+    const newCart = await Cart.create({
+      userId,
+      postId,
+    });
+    res.json(newCart);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// 장바구니 삭제
+exports.deleteCart = async (req, res) => {
+  try {
+    const { cartId } = req.params;
+    const isDeleted = await Cart.destroy({
+      where: { cartId },
+    });
+
+    if (!isDeleted) return res.send(false);
+
+    res.send(true);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+};
