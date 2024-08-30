@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 const sessionMiddleware = require("./middlewares/session");
 const { sequelize } = require("./models");
+// const indexRouter = require("./routes/index");
 // const cartRouter = require("./routes/cart/cart");
 // const userRouter = require("./routes/user/user");
 
@@ -31,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // router 설정
+// app.use("/", indexRouter);
 // app.use("/cart", cartRouter);
 // app.use("/user", userRouter);
 
