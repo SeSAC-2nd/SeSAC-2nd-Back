@@ -1,4 +1,12 @@
-const { Cart } = require("../../models/index");
+const {
+  Cart,
+  Post,
+  Seller,
+  Delivery,
+  Category,
+  ProductImage,
+  sequelize,
+} = require("../../models/index");
 
 // 장바구니 페이지 이동(장바구니 내역 조회)
 exports.getCartPage = async (req, res) => {
@@ -8,7 +16,45 @@ exports.getCartPage = async (req, res) => {
     const { userId } = req.params;
     const cartList = await Cart.findAll({
       where: { userId },
+      include: [
+        {
+          model: Post,
+          include: [
+            {
+              model: Seller,
+              include: [
+                {
+                  model: Delivery,
+                  attributes: ["deliveryName", "deliveryFee"],
+                },
+              ],
+              attributes: ["sellerName"],
+            },
+            {
+              model: Category,
+              attributes: ["categoryName"],
+            },
+            {
+              model: ProductImage,
+              attributes: ["imgName"],
+              where: {
+                isThumbnail: true,
+              },
+            },
+          ],
+          attributes: [
+            "sellerId",
+            "categoryId",
+            "postTitle",
+            "productPrice",
+            "productType",
+            "productStatus",
+          ],
+        },
+      ],
+      attributes: ["cartId", "postId"],
     });
+    res.json(cartList);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
