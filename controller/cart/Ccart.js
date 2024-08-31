@@ -13,6 +13,7 @@ exports.getCartPage = async (req, res) => {
   try {
     // 로그인 여부 체크
 
+    // session에서 조회로 변경
     const { userId } = req.params;
     const cartList = await Cart.findAll({
       where: { userId },
