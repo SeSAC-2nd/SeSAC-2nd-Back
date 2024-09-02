@@ -79,13 +79,20 @@ exports.getPostCreatePage = async (req, res) => {
   const { userId } = req.body;
   const seller = await Seller.findOne({ where: userId });
   if (!seller) {
-    return res.send({ message: "판매자 등록을 먼저 해주세요" });
+    return res.send({
+      isSeller: false,
+      message:
+        "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
+    });
   }
 
   // 블랙리스트 여부 확인
   const user = await User.findOne({ where: userId });
   if (user && user.isBlacklist) {
-    return res.send({ message: "블랙리스트 회원입니다" });
+    return res.send({
+      isBlacklist: true,
+      message: "신고 누적으로 인해 글을 작성할 수 없습니다",
+    });
   }
   return res.send({ result: true });
 };
