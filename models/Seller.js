@@ -21,7 +21,7 @@ const sellerModel = (sequelize, DataTypes) => {
         allowNull: false,
       },
       sellerImg: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(100),
         allowNull: true,
       },
       sellerExplain: {
@@ -36,7 +36,7 @@ const sellerModel = (sequelize, DataTypes) => {
     },
     {
       freezeTableName: true,
-      timestamps: false, 
+      timestamps: false,
     }
   );
   return Seller;
