@@ -7,6 +7,7 @@ const {
   Delivery,
   Category,
   ProductImage,
+  Order,
 } = require("../../models/index");
 
 // 결제 페이지(주문서) 이동
@@ -82,6 +83,7 @@ exports.insertOrder = async (req, res) => {
   try {
     // postId, sellerId, cartId, deliveryPrice(판매자별 한번만 배송비 추가)
     // order테이블에 insert
+    // 주문번호는 front에서 넘겨줄지 back에서 생성할지 논의 필요
     // 결제금액만큼 사용자의 잔고 차감
     // 해당 판매글의 판매 상태가 '판매 예약'으로 변경, 장바구니에서 해당 판매글이 삭제됨(cartId로 삭제)
     // 중개 내역 테이블에 해당 판매글에 대한 정보 insert
@@ -127,3 +129,19 @@ exports.insertOrder = async (req, res) => {
 // function generateUniqueOrderId() {
 //     return 'ORD' + Math.floor(Math.random() * 1000000000); // 간단한 고유 ID 생성 방법
 // }
+
+// 결제 완료 페이지 이동
+// 결제 총액도 출력하려하는데 어떻게 할지 고민 중
+exports.getOrderCompletePage = async (req, res) => {
+  try {
+    const { allOrderId } = req.body;
+    const order = await Order.findAll({
+      where: { allOrderId },
+      attributes: ["allOrderId", "address"],
+    });
+    res.json(order);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+};
