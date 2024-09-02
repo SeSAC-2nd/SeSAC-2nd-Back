@@ -3,6 +3,10 @@ const cors = require("cors");
 const app = express();
 const sessionMiddleware = require("./middlewares/session");
 const { sequelize } = require("./models");
+// const indexRouter = require("./routes/index");
+// const cartRouter = require("./routes/cart/cart");
+// const userRouter = require("./routes/user/user");
+// const postRouter = require("./routes/post/post");
 
 // CORS 설정
 // const corsOptions = {
@@ -27,6 +31,16 @@ app.use(cors());
 app.use(sessionMiddleware);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// router 설정
+// app.use("/", indexRouter);
+// app.use("/cart", cartRouter);
+// app.use("/user", userRouter);
+// app.use("/posts", postRouter);
+
+app.get("*", (req, res) => {
+  res.send("404 Not Found");
+});
 
 // 테이블을 생성하고 처음에만 force : true 로 실행하고 그 뒤로는 false로 변경하고 실행
 sequelize
