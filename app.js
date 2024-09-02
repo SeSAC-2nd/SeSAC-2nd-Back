@@ -10,6 +10,7 @@ const { sequelize } = require("./models");
 // const orderPageRouter = require("./routes/order/orderPage");
 // const orderRouter = require("./routes/order/order");
 // const complaintRouter = require("./routes/complaint/complaint");
+// const adminRouter = require("./routes/admin/admin");
 
 // CORS 설정
 // const corsOptions = {
@@ -43,6 +44,7 @@ app.use(express.json());
 // app.use("/order", orderPageRouter);
 // app.use("/orders", orderRouter);
 // app.use("/complaints", complaintRouter);
+// app.use("/admin", adminRouter);
 
 app.get("*", (req, res) => {
   res.send("404 Not Found");
