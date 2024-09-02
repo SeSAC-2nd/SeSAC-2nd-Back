@@ -11,7 +11,7 @@ const {
 // 장바구니 페이지 이동(장바구니 내역 조회)
 exports.getCartPage = async (req, res) => {
   try {
-    // 로그인 여부 체크
+    // 로그인 여부 체크, 로그인 안되어 있으면 '로그인이 필요합니다' 메세지 출력
 
     // session에서 조회로 변경
     const { userId } = req.params;
