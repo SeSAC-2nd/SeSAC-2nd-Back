@@ -117,10 +117,10 @@ exports.deleteSeller = async (req, res) => {
     // 판매자의 판매글 조회
     const posts = await Post.findAll({ where: { sellerId } });
 
-    // 판매중인 판매글이 있는지 확인
-    const hasActivePosts = posts.some(post => post.sellStatus === "판매중");
+    // 판매 중인 판매글이 있는지 확인
+    const hasActivePosts = posts.some(post => post.sellStatus === "판매 중");
     if (hasActivePosts) {
-      return res.status(400).json({ error: '판매중인 판매글이 있어 삭제할 수 없습니다.' });
+      return res.status(400).json({ error: '판매 중인 판매글이 있어 삭제할 수 없습니다.' });
     }
 
     // 이미 삭제 처리된 판매자인지 확인
