@@ -33,6 +33,14 @@ const addressModel = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: false,
       },
+      receiver: {
+        type: DataTypes.STRING(8),
+        allowNull: false,
+      },
+      phoneNum: {
+        type: DataTypes.STRING(15),
+        allowNull: false,
+      },
     },
     {
       freezeTableName: true,
