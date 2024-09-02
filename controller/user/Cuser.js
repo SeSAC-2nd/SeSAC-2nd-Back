@@ -1,4 +1,4 @@
-const { User, Address, TermsAgree } = require('../../models/index');
+const { User, Address, TermsAgree, Post, Seller, Order } = require('../../models/index');
 const { hashPw, comparePw } = require('../../utils/passwordUtils');
 
 // 로그인
@@ -29,7 +29,7 @@ exports.userRegister = async (req, res) => {
   try {
     const {
       loginId, userPw, nickname, userName, phoneNum, email, balance,
-      addName, zipCode, address, detailedAdress,
+      addName, zipCode, address, detailedAdress, isDefault,
       isRequiredAgreed, isOptionalAgreed
     } = req.body;
 
@@ -81,6 +81,9 @@ exports.userRegister = async (req, res) => {
       zipCode,
       address,
       detailedAdress,
+      isDefault: isDefault || true,
+      receiver: userName,
+      phoneNum,
     });
 
     // 약관 동의 생성
@@ -90,8 +93,14 @@ exports.userRegister = async (req, res) => {
       isOptionalAgreed,
     });
 
-    if (newUser && newAdress && newTermsAgree) res.send({ result: true });
-    else res.send({ result: false });
+    // 성공 응답 시 userPw 제외
+    if (newUser && newAdress && newTermsAgree) res.status(200).json({
+      message: '사용자가 성공적으로 회원가입되었습니다.',
+      user: (({ userPw, ...userWithoutPw }) => userWithoutPw)(newUser.toJSON()),
+      adress: newAdress.toJSON(),
+      termsAgree: newTermsAgree.toJSON()
+    });
+    else res.status(500).json({ result: false, error: '회원가입 실패' });
 
   } catch (error) {
     console.error(error);
@@ -222,8 +231,8 @@ exports.updateUser = async (req, res) => {
     // 데이터 업데이트
     await user.update(updatedData);
 
-    // 성공 응답
-    res.status(200).json({ message: '사용자 정보가 성공적으로 업데이트되었습니다.', user: { ...updatedData } });
+    // 성공 응답 시 userPw 제외
+    res.status(200).json({ message: '사용자 정보가 성공적으로 업데이트되었습니다.', user: (({ userPw, ...rest }) => rest)(updatedData) });
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
@@ -247,7 +256,7 @@ exports.getUser = async (req, res) => {
     }
 
     // 성공 응답
-    res.status(200).json({ user });
+    res.status(200).json({ user: (({ userPw, ...rest }) => rest)(user.dataValues) });
 
   } catch (error) {
     console.error(error);
@@ -270,6 +279,32 @@ exports.deleteUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
     }
+
+
+    // 사용자의 판매자 정보 조회
+    const seller = await Seller.findOne({ where: { userId } });
+    console.log(seller);
+
+    // 판매자가 존재하면 판매글 조회
+    if (seller) {
+      const posts = await Post.findAll({ where: { sellerId: seller.dataValues.sellerId } });
+
+      // 판매중인 판매글이 있는지 확인
+      const hasActivePosts = posts.some(post => post.sellStatus === "판매중");
+      if (hasActivePosts) {
+        return res.status(400).json({ error: '판매중인 판매글이 있어 탈퇴할 수 없습니다.' });
+      }
+    }
+
+    // 사용자의 구매 정보 조회
+    const orders = await Order.findAll({ where: { userId } });
+
+    // 구매 확정 여부가 false인 주문이 있는지 확인
+    const hasPendingOrders = orders.some(order => !order.isConfirmed);
+    if (hasPendingOrders) {
+      return res.status(400).json({ error: '확정되지 않은 구매가 있어 탈퇴할 수 없습니다.' });
+    }
+
 
     // 이미 탈퇴 처리된 사용자인지 확인
     if (user.isWithdrawn) {
