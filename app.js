@@ -7,6 +7,9 @@ const { sequelize } = require("./models");
 // const cartRouter = require("./routes/cart/cart");
 // const userRouter = require("./routes/user/user");
 // const postRouter = require("./routes/post/post");
+// const orderPageRouter = require("./routes/order/orderPage");
+// const orderRouter = require("./routes/order/order");
+// const complaintRouter = require("./routes/complaint/complaint");
 
 // CORS 설정
 // const corsOptions = {
@@ -37,6 +40,9 @@ app.use(express.json());
 // app.use("/cart", cartRouter);
 // app.use("/user", userRouter);
 // app.use("/posts", postRouter);
+// app.use("/order", orderPageRouter);
+// app.use("/orders", orderRouter);
+// app.use("/complaints", complaintRouter);
 
 app.get("*", (req, res) => {
   res.send("404 Not Found");
