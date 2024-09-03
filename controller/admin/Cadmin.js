@@ -1,8 +1,18 @@
-const { User, Seller, Complaint } = require("../../models/index");
+const { User, Seller, Complaint, TermsAgree } = require("../../models/index");
 
 // 전체회원조회 페이지 이동
 exports.getAllUserPage = async (req, res) => {
   try {
+    const allUser = await User.findAll({
+      attributes: ["loginId", "nickname"],
+      include: [
+        {
+          model: TermsAgree,
+          attributes: ["isRequiredAgreed", "isOptionalAgreed"],
+        },
+      ],
+    });
+    res.json(allUser);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -12,6 +22,9 @@ exports.getAllUserPage = async (req, res) => {
 // 판매자조회 페이지 이동
 exports.getSellerPage = async (req, res) => {
   try {
+    const allSeller = await Seller.findAll({
+      attributes: ["sellerName", ""],
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -21,6 +34,8 @@ exports.getSellerPage = async (req, res) => {
 // 신고글조회 페이지 이동
 exports.getComplaintPage = async (req, res) => {
   try {
+    const {} = req.body;
+    const complaintList = await Complaint.findAll({});
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
