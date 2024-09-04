@@ -11,6 +11,7 @@ const { sequelize } = require("./models");
 // const orderRouter = require("./routes/order/order");
 // const complaintRouter = require("./routes/complaint/complaint");
 // const adminRouter = require("./routes/admin/admin");
+// const mypageRouter = require("./routes/mypage/mypage");
 
 // CORS 설정
 // const corsOptions = {
@@ -45,6 +46,7 @@ app.use(express.json());
 // app.use("/orders", orderRouter);
 // app.use("/complaints", complaintRouter);
 // app.use("/admin", adminRouter);
+// app.use("/mypage", mypageRouter);
 
 app.get("*", (req, res) => {
   res.send("404 Not Found");
