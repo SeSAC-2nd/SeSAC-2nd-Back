@@ -8,6 +8,8 @@ const {
   Category,
   ProductImage,
   Order,
+  OrderLogs,
+  sequelize,
 } = require("../../models/index");
 
 // 결제 페이지(주문서) 이동
@@ -51,6 +53,7 @@ exports.getOrderPage = async (req, res) => {
             "productPrice",
             "productType",
             "productStatus",
+            "sellStatus",
           ],
         },
       ],
@@ -80,66 +83,144 @@ exports.getOrderPage = async (req, res) => {
 
 // 구매(결제) 데이터 등록
 exports.insertOrder = async (req, res) => {
+  // userId는 session에서
+  const { orderData, userId } = req.body;
+
+  // 모든 주문에 공통으로 적용될 orderId를 생성
+  const allOrderId = generateUniqueOrderId();
+
   try {
-    // postId, sellerId, cartId, deliveryPrice(판매자별 한번만 배송비 추가)
-    // order테이블에 insert
-    // 주문번호는 front에서 넘겨줄지 back에서 생성할지 논의 필요
-    // 결제금액만큼 사용자의 잔고 차감
-    // 해당 판매글의 판매 상태가 '판매 예약'으로 변경, 장바구니에서 해당 판매글이 삭제됨(cartId로 삭제)
-    // 중개 내역 테이블에 해당 판매글에 대한 정보 insert
+    // 트랜잭션을 사용해 모든 작업을 하나의 트랜잭션으로 처리
+    await sequelize.transaction(async (transaction) => {
+      const user = await User.findOne({ where: { userId }, transaction });
+
+      // 주문 총액 합산
+      const totalOrderAmount = orderData.reduce(
+        (sum, order) => sum + order.totalPrice,
+        0
+      );
+
+      // 잔액 확인
+      if (user.balance < totalOrderAmount) {
+        throw new Error("Insufficient balance to complete the transaction.");
+      }
+
+      // 잔액 차감
+      await user.update(
+        { balance: user.balance - totalOrderAmount },
+        { transaction }
+      );
+
+      // 주문 데이터 생성, 판매 상태 업데이트, 장바구니 데이터 삭제 및 로그 생성
+      for (const order of orderData) {
+        // 주문 생성
+        const createdOrder = await Order.create(
+          {
+            userId,
+            postId: order.postId,
+            sellerId: order.sellerId,
+            allOrderId,
+            createdAt: new Date(),
+            invoiceNumber: null,
+            deliveryStatus: "배송 전",
+            address: order.address,
+            deliveryPrice: order.deliveryPrice,
+          },
+          { transaction }
+        );
+
+        // 해당 게시물의 판매 상태 및 결제 여부 업데이트
+        await Post.update(
+          {
+            sellStatus: "판매 예약",
+            isOrdered: true,
+          },
+          {
+            where: { postId: order.postId },
+            transaction,
+          }
+        );
+
+        // 장바구니에서 해당 cartId에 해당하는 데이터 삭제
+        await Cart.destroy({
+          where: { cartId: order.cartId },
+          transaction,
+        });
+
+        // Order_Logs에 insert
+        await OrderLogs.create(
+          {
+            managerId: 1,
+            orderId: createdOrder.orderId, // 생성된 주문의 orderId
+            userId: userId,
+            postId: order.postId,
+            orderLogPrice: order.totalPrice,
+            deposit: order.totalPrice,
+            withdraw: null,
+            logStatus: "입금",
+            createdAt: new Date(),
+          },
+          { transaction }
+        );
+      }
+    });
+
+    res.status(201).json({
+      message:
+        "Order created, balance updated, post status changed, cart items deleted, and order logs created successfully.",
+      allOrderId,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Transaction failed:", error);
+    res.status(500).send({ error: error.message });
   }
 };
 
-// async function createOrder(orderData) {
-//     const { userInfo, postInfo, addressInfo } = orderData;
-
-//     // 모든 주문에 공통으로 적용될 orderId를 생성
-//     const allOrderId = generateUniqueOrderId(); // 이 함수는 고유한 주문 ID를 생성
-
-//     for (const post of postInfo) {
-//         const { postId, Post } = post;
-//         const { sellerId, Seller } = Post;
-//         const { deliveryFee } = Seller.Delivery;
-
-//         try {
-//             await Order.create({
-//                 userId: getUserId(userInfo.email), // 이메일로 userId 가져오기 (가정)
-//                 postId: postId,
-//                 sellerId: sellerId,
-//                 allOrderId: allOrderId,
-//                 createdAt: new Date(),
-//                 deliveryStatus: 'Pending', // 초기 배송 상태
-//                 address: `${addressInfo.address} ${addressInfo.detailedAddress || ''}`,
-//                 deliveryPrice: deliveryFee,
-//                 invoiceNumber: null, // 주문 시점에서는 송장번호가 없으므로 null
-//                 isConfirmed: false,
-//                 isOrderCanceled: false,
-//             });
-//         } catch (error) {
-//             console.error('Order creation failed:', error);
-//             // 오류 처리 (예: 트랜잭션 롤백 또는 재시도)
-//         }
-//     }
-// }
-
-// // 고유한 주문 ID를 생성하는 함수 (예시)
-// function generateUniqueOrderId() {
-//     return 'ORD' + Math.floor(Math.random() * 1000000000); // 간단한 고유 ID 생성 방법
-// }
+// // 고유한 주문 ID를 생성하는 함수
+function generateUniqueOrderId() {
+  return "ORD" + Math.floor(1000000 + Math.random() * 9000000).toString();
+}
 
 // 결제 완료 페이지 이동
-// 결제 총액도 출력하려하는데 어떻게 할지 고민 중
 exports.getOrderCompletePage = async (req, res) => {
   try {
-    const { allOrderId } = req.body;
-    const order = await Order.findAll({
+    const { allOrderId } = req.params;
+    const orders = await Order.findAll({
       where: { allOrderId },
-      attributes: ["allOrderId", "address"],
+      attributes: ["allOrderId", "address", "deliveryPrice"],
+      include: [
+        {
+          model: Post,
+          attributes: ["productPrice", "postTitle"],
+        },
+      ],
     });
-    res.json(order);
+
+    // 데이터 개수 계산
+    const orderCount = orders.length;
+
+    // 총 결제 금액 계산
+    const totalPaymentAmount = orders.reduce((sum, order) => {
+      return sum + order.deliveryPrice + order.Post.productPrice; // 배송비와 제품 가격 합산
+    }, 0);
+
+    // 결과 조합
+    const result = {
+      orderCount, // 주문 개수
+      totalPaymentAmount, // 총 결제 금액
+      orders: orders.map((order) => ({
+        allOrderId: order.allOrderId,
+        address: order.address,
+        postTitle: order.Post.postTitle,
+        deliveryPrice: order.deliveryPrice,
+        productPrice: order.Post.productPrice,
+      })),
+    };
+
+    res.status(200).json({
+      message: "Order details retrieved successfully",
+      orderDetails: result,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

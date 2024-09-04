@@ -6,6 +6,6 @@ const router = express.Router();
 router.post("/", controller.getOrderPage);
 
 // 결제 완료 페이지 이동
-router.get("/complete", controller.getOrderCompletePage);
+router.get("/complete/:allOrderId", controller.getOrderCompletePage);
 
 module.exports = router;
