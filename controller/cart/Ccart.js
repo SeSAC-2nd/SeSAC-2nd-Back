@@ -51,6 +51,7 @@ exports.getCartPage = async (req, res) => {
             "productPrice",
             "productType",
             "productStatus",
+            "sellStatus",
           ],
         },
       ],
