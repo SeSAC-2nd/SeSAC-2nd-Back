@@ -17,6 +17,9 @@ router.get('/checkNickname', controller.checkDuplicatedNickname);
 // 비밀번호 일치 확인
 router.get('/checkPassword', controller.checkPassword);
 
+// 로그아웃
+router.get('/logout', controller.userLogout);
+
 // 회원 정보 수정
 router.patch('/:userId', controller.updateUser);
 
@@ -25,8 +28,5 @@ router.get('/:userId', controller.getUser);
 
 // 회원 탈퇴
 router.patch('/delete/:userId', controller.deleteUser);
-
-// 로그아웃
-router.get('/logout', controller.userLogout);
 
 module.exports = router;

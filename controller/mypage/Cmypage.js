@@ -5,7 +5,7 @@ const { User, Order, Post, ProductImage, Seller, Category, Wishlist, Address } =
 // 마이 페이지 이동
 exports.getMyPage = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
@@ -99,7 +99,7 @@ exports.getMyPage = async (req, res) => {
 // 회원 정보 수정 페이지 이동
 exports.getEditUserPage = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
@@ -148,7 +148,7 @@ exports.getEditUserPage = async (req, res) => {
 // 판매 내역 페이지 이동
 exports.getSalesHistoryPage = async (req, res) => {
   try {
-    const { userId } = req.body
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
@@ -233,7 +233,7 @@ exports.updateOrderInvoiceNumber = async (req, res) => {
 // 판매글 목록 페이지 이동
 exports.getUserPostListPage = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
@@ -289,7 +289,7 @@ exports.getUserPostListPage = async (req, res) => {
 // 구매 내역 페이지 이동
 exports.getOrderHistoryPage = async (req, res) => {
   try {
-    const { userId } = req.body
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
@@ -335,7 +335,7 @@ exports.getOrderHistoryPage = async (req, res) => {
 // 찜 목록 페이지 이동
 exports.getWishlistPage = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
@@ -387,7 +387,7 @@ exports.getWishlistPage = async (req, res) => {
 // 배송지 관리 페이지 이동
 exports.getAddressPage = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.session.user;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
