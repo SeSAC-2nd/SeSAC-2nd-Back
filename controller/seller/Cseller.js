@@ -4,8 +4,16 @@ const { Seller, Post } = require('../../models/index');
 // 판매자 이미지 코드 추가해야 함
 exports.insertSeller = async (req, res) => {
   try {
-    // userId는 이후 세션으로 대체
-    const { userId, sellerName, sellerExplain, deliveryId } = req.body;
+    const { userId } = req.session.user;
+    const { sellerName, sellerExplain, deliveryId } = req.body;
+
+    const seller = await Seller.findOne({
+      where: { userId },
+    })
+
+    if (seller) {
+      return res.status(404).json({ error: '판매자 등록이 되어 있습니다.' });
+    }
 
     // sellerName 정규표현식 검사(가능: 한글/영어/특수문자/숫자, 2~15글자)
     const sellerNameRegex = /^[a-zA-Z0-9가-힣!@#$%^&*]{2,15}$/;
@@ -21,8 +29,26 @@ exports.insertSeller = async (req, res) => {
 
     const newSeller = await Seller.create(newData);
 
-    if (newSeller) res.status(200).json({ message: '판매자가 성공적으로 등록되었습니다.', seller: newSeller });
-    else res.status(500).json({ result: false, error: '판매자 등록 실패' });
+    if (newSeller) {
+      // 세션에 sellerId 저장
+      req.session.user = {
+        ...req.session.user,
+        sellerId: newSeller.sellerId
+      };
+
+      // 세션 저장 후 응답
+      req.session.save((err) => {
+        if (err) {
+          console.error('세션 저장 오류:', err);
+          return res.status(500).json({ error: '세션 저장 중 오류가 발생했습니다.' });
+        }
+        res.status(200).json({ message: '판매자가 성공적으로 등록되었습니다.', seller: newSeller });
+      });
+    } else {
+      res.status(500).json({ result: false, error: '판매자 등록 실패' });
+    }
+
+    console.log(req.session);
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
@@ -32,7 +58,7 @@ exports.insertSeller = async (req, res) => {
 // 판매자 조회
 exports.getSeller = async (req, res) => {
   try {
-    const { sellerId } = req.params;
+    const { sellerId } = req.session.user;
 
     // sellerId가 제공되지 않았거나 잘못된 경우 처리
     if (!sellerId) {
@@ -57,7 +83,7 @@ exports.getSeller = async (req, res) => {
 // 이미지 코드 추가해야 함
 exports.updateSeller = async (req, res) => {
   try {
-    const { sellerId } = req.params;
+    const { sellerId } = req.session.user;
     const { sellerName, sellerExplain } = req.body;
 
     // sellerId가 제공되지 않았거나 잘못된 경우 처리
@@ -101,7 +127,7 @@ exports.updateSeller = async (req, res) => {
 // 판매자 삭제
 exports.deleteSeller = async (req, res) => {
   try {
-    const { sellerId } = req.params;
+    const { sellerId } = req.session.user;
 
     // sellerId가 제공되지 않았거나 잘못된 경우 처리
     if (!sellerId) {

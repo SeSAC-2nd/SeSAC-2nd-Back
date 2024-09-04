@@ -14,8 +14,8 @@ exports.getCartPage = async (req, res) => {
     // 로그인 여부 체크, 로그인 안되어 있으면 '로그인이 필요합니다' 메세지 출력
     // 관리자면 '장바구니를 이용할 수 없습니다' 메세지 출력
 
-    // session에서 조회로 변경
-    const { userId } = req.params;
+    // const { userId } = req.params;
+    const { userId } = req.session.user;
     const cartList = await Cart.findAll({
       where: { userId },
       include: [
