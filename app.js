@@ -15,6 +15,7 @@ const { sequelize } = require("./models");
 // const sellerRouter = require("./routes/seller/seller");
 // const commentRouter = require("./routes/comment/comment");
 // const wishlistRouter = require("./routes/wishlist/wishlist");
+// const addressRouter = require("./routes/address/address");
 
 // CORS 설정
 // const corsOptions = {
@@ -53,6 +54,7 @@ app.use(express.json());
 // app.use("/sellers", sellerRouter);
 // app.use("/comments", commentRouter);
 // app.use("/wishlist", wishlistRouter);
+// app.use("/addresses", addressRouter);
 
 app.get("*", (req, res) => {
   res.send("404 Not Found");
