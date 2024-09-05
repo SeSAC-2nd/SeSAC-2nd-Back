@@ -9,13 +9,13 @@ router.get('/login', controller.userLogin);
 router.post('/register', controller.userRegister);
 
 // 로그인 아이디 중복 체크
-router.get('/checkLoginid', controller.checkDuplicatedLoginid);
+router.post('/checkLoginid', controller.checkDuplicatedLoginid);
 
 // 로그인 닉네임 중복 체크
-router.get('/checkNickname', controller.checkDuplicatedNickname);
+router.post('/checkNickname', controller.checkDuplicatedNickname);
 
 // 비밀번호 일치 확인
-router.get('/checkPassword', controller.checkPassword);
+router.post('/checkPassword', controller.checkPassword);
 
 // 로그아웃
 router.get('/logout', controller.userLogout);
