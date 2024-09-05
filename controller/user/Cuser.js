@@ -90,6 +90,18 @@ exports.userRegister = async (req, res) => {
 
     console.log("User Model:", User);
 
+    // phoneNum 중복 확인
+    const existingUserByPhoneNum = await User.findOne({ where: { phoneNum } });
+    if (existingUserByPhoneNum) {
+      return res.status(409).json({ error: '이미 사용 중인 전화번호입니다.' });
+    }
+
+    // email 중복 확인
+    const existingUserByEmail = await User.findOne({ where: { email } });
+    if (existingUserByEmail) {
+      return res.status(409).json({ error: '이미 사용 중인 이메일입니다.' });
+    }
+
     // loginId 정규표현식 검사(가능: 영어소문자/숫자, 6~12 글자)
     const loginIdRegex = /^[a-z0-9]{6,12}$/;
     if (!loginIdRegex.test(loginId))
@@ -230,9 +242,6 @@ exports.checkPassword = async (req, res) => {
     const { userId } = req.session.user;
     const { userPw } = req.body;
 
-    console.log(req.session.user.userId);
-    console.log(userPw);
-
     // userId, userPw가 제공되지 않았거나 잘못된 경우 처리
     if (!userId || !userPw) {
       return res.status(400).json({ error: '사용자 ID와 비밀번호가 필요합니다.' });
@@ -302,7 +311,7 @@ exports.updateUser = async (req, res) => {
     // 성공 응답 시 userPw 제외
     const updatedUser = { ...user.toJSON() };
     delete updatedUser.userPw; // 비밀번호는 응답에서 제외
-    
+
     // 수정된 정보를 세션에도 저장
     req.session.user = {
       ...req.session.user,
@@ -328,7 +337,7 @@ exports.updateUser = async (req, res) => {
 
 // 회원 조회
 exports.getUser = async (req, res) => {
-  console.log("req >>>>> ",req.session);
+  console.log("req >>>>> ", req.session);
   try {
     const { userId } = req.session.user;
 
