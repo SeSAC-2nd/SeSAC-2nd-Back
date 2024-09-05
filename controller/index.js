@@ -5,7 +5,6 @@ const {
   Wishlist,
   sequelize,
 } = require("../models/index");
-const { col, fn, literal } = require("sequelize");
 
 // 메인 페이지 이동(최신순, 인기순 판매글 목록)
 exports.getMainPage = async (req, res) => {
@@ -26,51 +25,41 @@ exports.getMainPage = async (req, res) => {
       order: [["createdAt", "DESC"]], // 최신순 정렬
       limit: 8,
     });
-    // const wishlistPostList = await Post.findAll({
-    //   attributes: [
-    //     "postId",
-    //     "postTitle",
-    //     "productPrice",
-    //     "createdAt",
-    //     [fn("COUNT", col("Wishlist.postId")), "wishlistCount"],
-    //     "categoryId",
-    //     "categoryName",
-    //     "imgId",
-    //     "imgName",
-    //   ],
-    //   include: [
-    //     {
-    //       model: Category,
-    //       attributes: ["categoryId", "categoryName"],
-    //     },
-    //     {
-    //       model: ProductImage,
-    //       as: "Product_Images",
-    //       attributes: ["imgId", "imgName"],
-    //       where: { isThumbnail: true },
-    //     },
-    //     {
-    //       model: Wishlist,
-    //       attributes: [],
-    //     },
-    //   ],
-    //   group: [
-    //     "Post.postId",
-    //     "Post.postTitle",
-    //     "Post.productPrice",
-    //     "Post.createdAt",
-    //     "Category.categoryId",
-    //     "Category.categoryName",
-    //     "Product_Images.imgId",
-    //     "Product_Images.imgName",
-    //   ],
-    //   order: [
-    //     [fn("COUNT", col("Wishlist.postId")), "DESC"],
-    //     ["createdAt", "DESC"],
-    //   ],
-    //   limit: 8,
-    // });
-    res.json({ newPostList });
+    const query = `
+        SELECT
+            Post.postId,
+            Post.postTitle,
+            Post.productPrice,
+            Post.createdAt,
+            COUNT(Wishlist.postId) AS wishlistCount,
+            Category.categoryId,
+            Category.categoryName,
+            Product_Images.imgId,
+            Product_Images.imgName
+        FROM
+            Post
+        LEFT JOIN Category ON Post.categoryId = Category.categoryId
+        INNER JOIN Product_Image AS Product_Images
+            ON Post.postId = Product_Images.postId
+            AND Product_Images.isThumbnail = true
+        LEFT JOIN Wishlist ON Post.postId = Wishlist.postId
+        GROUP BY
+            Post.postId,
+            Post.postTitle,
+            Post.productPrice,
+            Post.createdAt,
+            Category.categoryId,
+            Category.categoryName,
+            Product_Images.imgId,
+            Product_Images.imgName
+        ORDER BY
+            wishlistCount DESC,
+            Post.createdAt DESC
+        LIMIT 8;
+    `;
+
+    const [wishlistPostList, metadata] = await sequelize.query(query);
+    res.json({ newPostList, wishlistPostList });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
