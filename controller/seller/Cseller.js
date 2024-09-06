@@ -1,20 +1,21 @@
-const { Seller, Post, db } = require('../../models/index');
+const { Seller, Post} = require('../../models/index');
+const db =require('../../models/index');
 
 // 판매자 등록
 // 판매자 이미지 코드 추가해야 함
 exports.insertSeller = async (req, res) => {
   const t = await db.sequelize.transaction();
   try {
-    const { userId } = req.session.user;
+    const { userId }= req.session.user;
     const { sellerName, sellerExplain, deliveryId } = req.body;
 
     const seller = await Seller.findOne({
       where: { userId },
       transaction: t
     })
-
+    
     if (seller) {
-      return res.status(404).json({ error: '판매자 등록이 되어 있습니다.' });
+      return res.status(404).json({ error: '이미 판매자 등록이 되어 있습니다.' });
     }
 
     // sellerName 정규표현식 검사(가능: 한글/영어/특수문자/숫자, 2~15글자)
@@ -89,8 +90,6 @@ exports.getSeller = async (req, res) => {
   }
 }
 
-// 판매자 수정
-// 이미지 코드 추가해야 함
 // 판매자 수정
 // 이미지 코드 추가해야 함
 exports.updateSeller = async (req, res) => {
