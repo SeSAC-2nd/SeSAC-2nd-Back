@@ -245,47 +245,68 @@ exports.getPostCreatePage = async (req, res) => {
 exports.getPostDetailPage = async (req, res) => {
   try {
     const { postId } = req.params;
-    // 이미지, 카테고리, 판매글 제목, 가격, 배송사, 배송비, 상품유형, 상품 상태,
-    // 유저의 찜 여부, 판매자 이름, 판매자 프로필, 판매글 내용, 작성 일자
-    // 댓글,대댓글 목록
     const getPost = await Post.findOne({
       where: { postId },
+      attributes: [
+        "postId",
+        "postTitle",
+        "postContent",
+        "productPrice",
+        "productType",
+        "productStatus",
+        "sellStatus",
+        "createdAt",
+      ],
       include: [
         {
           model: Category,
-          attributes: ["categoryName"], // 카테고리 이름
+          attributes: ["categoryName"],
         },
         {
           model: ProductImage,
-          attributes: ["imgId", "imgName"], // 이미지 ID와 이름
-          // where: {
-          //   isThumbnail: true, // 썸네일 이미지만 가져오기
-          // },
+          attributes: ["imgId", "imgName"],
         },
         {
           model: Seller, // 판매자 정보
           attributes: ["sellerId", "sellerName", "sellerImg"],
           include: [
             {
-              model: Delivery, // 댓글 작성자 정보
+              model: Delivery,
               attributes: ["deliveryName", "deliveryFee"],
             },
           ],
         },
         {
           model: Comment, // 댓글
+          attributes: [
+            "comId",
+            "userId",
+            "comContent",
+            "isSecret",
+            "createdAt",
+            "isDeleted",
+          ],
           include: [
             {
               model: User, // 댓글 작성자 정보
-              attributes: ["userId", "userName", "profileImage"], // 댓글 작성자 ID, 이름, 프로필 이미지
+              attributes: ["userId", "userName", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
             },
             {
               model: Comment, // 대댓글
-              as: "replies", // 대댓글을 위한 alias
+              attributes: [
+                "comId",
+                "userId",
+                "comContent",
+                "isSecret",
+                "createdAt",
+                "isDeleted",
+                "parentComId",
+              ],
+              as: "replies",
               include: [
                 {
                   model: User, // 대댓글 작성자 정보
-                  attributes: ["userId", "userName", "profileImage"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+                  attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
                 },
               ],
             },
