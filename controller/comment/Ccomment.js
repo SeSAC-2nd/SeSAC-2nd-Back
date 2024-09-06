@@ -3,26 +3,26 @@ const { Comment, User } = require("../../models/index");
 // 댓글 등록
 exports.insertComment = async (req, res) => {
   try {
-    // 댓글 등록 입력창 누르면 로그인 상태인지 아닌지 확인
-    const { postId, userId } = req.params;
+    const { postId } = req.params;
 
     //   const { userId } = req.session.user;
     // userId는 세션에서 가져오기
-    const { comContent, isSecret } = req.body;
+    const { comContent, isSecret, userId } = req.body;
     const insertCom = await Comment.create({
       comContent,
       postId,
       userId,
       isSecret,
     });
-    const commWithUser = await Comment.findOne({
-      where: { comId: insertCom.comId },
-      include: [{ model: User, attributes: ["userNick"] }], // User 정보 포함
-    });
-    res.json({
-      commWithUser,
-      sessionUser: req.session.user ? req.session.user : null,
-    });
+    // const commWithUser = await Comment.findOne({
+    //   where: { comId: insertCom.comId },
+    //   include: [{ model: User, attributes: ["userNick"] }], // User 정보 포함
+    // });
+    // res.json({
+    //   commWithUser,
+    //   sessionUser: req.session.user ? req.session.user : null,
+    // });
+    res.json(insertCom);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -117,9 +117,9 @@ exports.deleteCommentReply = async (req, res) => {
 // 대댓글 등록
 exports.insertReply = async (req, res) => {
   try {
-    const { comId, userId } = req.params;
+    const { comId } = req.params;
     //   const { userId } = req.session.user;
-    const { postId, comContent, isSecret } = req.body;
+    const { postId, comContent, isSecret, userId } = req.body;
     const insertReply = await Comment.create({
       comContent,
       postId,
@@ -128,11 +128,12 @@ exports.insertReply = async (req, res) => {
       isSecret,
     });
     // 생성된 대댓글의 User 정보를 가져오기
-    const replyWithUser = await Comment.findOne({
-      where: { comId: insertReply.comId },
-      include: [{ model: User, attributes: ["userNick"] }], // User 정보 포함
-    });
-    res.json({ replyWithUser, sessionUser: req.session.user });
+    // const replyWithUser = await Comment.findOne({
+    //   where: { comId: insertReply.comId },
+    //   include: [{ model: User, attributes: ["userNick"] }], // User 정보 포함
+    // });
+    // res.json({ replyWithUser, sessionUser: req.session.user });
+    res.json(insertReply);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

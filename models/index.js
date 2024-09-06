@@ -87,6 +87,16 @@ CommentModel.belongsTo(UserModel, { foreignKey: "userId" });
 PostModel.hasMany(CommentModel, { foreignKey: "postId" });
 CommentModel.belongsTo(PostModel, { foreignKey: "postId" });
 
+// Comment와 Comment(N:1)
+CommentModel.hasMany(CommentModel, {
+  as: "replies",
+  foreignKey: "parentComId",
+});
+CommentModel.belongsTo(CommentModel, {
+  as: "parentComment",
+  foreignKey: "parentComId",
+});
+
 // ProductImage와 Post(N:1)
 PostModel.hasMany(ProductImageModel, { foreignKey: "postId" });
 ProductImageModel.belongsTo(PostModel, { foreignKey: "postId" });
