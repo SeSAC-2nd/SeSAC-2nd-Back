@@ -71,6 +71,14 @@ exports.insertCart = async (req, res) => {
 
     // userId는 session에서
     const { userId } = req.body;
+
+    const findCartItem = await Cart.findOne({
+      where: { userId, postId },
+    });
+    if (findCartItem) {
+      res.status(409).send({ message: "이미 장바구니에 담겨있는 상품입니다." });
+      return;
+    }
     const newCart = await Cart.create({
       userId,
       postId,
