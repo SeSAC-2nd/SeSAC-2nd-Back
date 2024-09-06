@@ -109,8 +109,6 @@ exports.userRegister = async (req, res) => {
       isOptionalAgreed,
     } = req.body;
 
-    console.log("User Model:", User);
-
     // phoneNum 중복 확인
     const existingUserByPhoneNum = await User.findOne({ where: { phoneNum } });
     if (existingUserByPhoneNum) {
@@ -216,7 +214,7 @@ exports.checkDuplicatedLoginid = async (req, res) => {
       attributes: ["loginId"],
     });
 
-    if (loginId == manager.loginId) {
+    if (loginId == manager?.loginId) {
       return res.status(400).json({ error: "이미 사용 중인 로그인 ID입니다." });
     }
 
