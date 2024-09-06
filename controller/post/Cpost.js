@@ -4,6 +4,8 @@ const {
   Seller,
   User,
   Category,
+  Delivery,
+  Comment,
 } = require("../../models/index");
 const { Op } = require("sequelize");
 
@@ -239,10 +241,59 @@ exports.getPostCreatePage = async (req, res) => {
   return res.send({ result: true });
 };
 
-// 판매글 상세 페이지
+// 판매글 상세 페이지 이동
 exports.getPostDetailPage = async (req, res) => {
   try {
     const { postId } = req.params;
+    // 이미지, 카테고리, 판매글 제목, 가격, 배송사, 배송비, 상품유형, 상품 상태,
+    // 유저의 찜 여부, 판매자 이름, 판매자 프로필, 판매글 내용, 작성 일자
+    // 댓글,대댓글 목록
+    const getPost = await Post.findOne({
+      where: { postId },
+      include: [
+        {
+          model: Category,
+          attributes: ["categoryName"], // 카테고리 이름
+        },
+        {
+          model: ProductImage,
+          attributes: ["imgId", "imgName"], // 이미지 ID와 이름
+          // where: {
+          //   isThumbnail: true, // 썸네일 이미지만 가져오기
+          // },
+        },
+        {
+          model: Seller, // 판매자 정보
+          attributes: ["sellerId", "sellerName", "sellerImg"],
+          include: [
+            {
+              model: Delivery, // 댓글 작성자 정보
+              attributes: ["deliveryName", "deliveryFee"],
+            },
+          ],
+        },
+        {
+          model: Comment, // 댓글
+          include: [
+            {
+              model: User, // 댓글 작성자 정보
+              attributes: ["userId", "userName", "profileImage"], // 댓글 작성자 ID, 이름, 프로필 이미지
+            },
+            {
+              model: Comment, // 대댓글
+              as: "replies", // 대댓글을 위한 alias
+              include: [
+                {
+                  model: User, // 대댓글 작성자 정보
+                  attributes: ["userId", "userName", "profileImage"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    res.json(getPost);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -268,8 +319,8 @@ exports.updatePost = async (req, res) => {
   }
 };
 
-// 판매글 상세 조회
-exports.getPost = async (req, res) => {
+// 판매글 수정 페애지 이동
+exports.getPostUpdatePage = async (req, res) => {
   try {
     const { postId } = req.params;
     const post = await Post.findOne({

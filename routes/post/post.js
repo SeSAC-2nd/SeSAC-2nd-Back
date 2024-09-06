@@ -20,8 +20,8 @@ router.get("/page/:postId", controller.getPostDetailPage);
 // 판매글 수정
 router.patch("/:postId", controller.updatePost);
 
-// 판매글 상세 조회
-router.get("/:postId", controller.getPost);
+// 판매글 수정 페애지 이동
+router.get("/:postId", controller.getPostUpdatePage);
 
 // 판매글 삭제
 router.patch("/delete/:postId", controller.deletePost);
