@@ -1,13 +1,95 @@
-const { Post, ProductImage, Seller, User } = require("../../models/index");
+const {
+  Post,
+  ProductImage,
+  Seller,
+  User,
+  Category,
+} = require("../../models/index");
+const { Op } = require("sequelize");
 
 // 전체 판매글 목록(정렬 포함)
 exports.getPostListPage = async (req, res) => {
   try {
-    const { page, limit, categoryId } = req.params;
+    const { page, categoryId } = req.params;
+    const { order } = req.query;
 
     const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageSize = limit ? parseInt(limit, 10) : 12;
+    const pageSize = 20;
     const offset = (pageNumber - 1) * pageSize;
+
+    let orderCondition;
+
+    switch (order) {
+      case "priceHigh":
+        orderCondition = [["productPrice", "DESC"]];
+        break;
+      case "priceLow":
+        orderCondition = [["productPrice", "ASC"]];
+        break;
+      case "latest":
+        orderCondition = [["createdAt", "DESC"]];
+        break;
+      default:
+        orderCondition = [["createdAt", "DESC"]];
+        break;
+    }
+    // 판매글이 삭제되지 않은, 블랙리스트의 글이 아닌 것
+    let whereCondition = {
+      isDeleted: false,
+    };
+
+    if (categoryId && categoryId >= 1 && categoryId <= 6) {
+      whereCondition.categoryId = categoryId;
+    }
+    const [postCount, postList] = await Promise.all([
+      Post.count({
+        where: whereCondition,
+      }),
+      Post.findAll({
+        attributes: [
+          "postId",
+          "postTitle",
+          "productPrice",
+          "categoryId",
+          "sellStatus",
+          "createdAt",
+        ],
+        limit: pageSize,
+        offset: offset,
+        order: orderCondition,
+        where: whereCondition,
+
+        include: [
+          {
+            model: Category,
+            attributes: ["categoryName"],
+            // required: false, // Use false in case a post has no image
+          },
+          {
+            model: ProductImage,
+            attributes: ["imgId", "imgName"],
+            // required: false, // Use false in case a post has no image
+            where: {
+              isThumbnail: true,
+            },
+          },
+        ],
+      }),
+    ]);
+    // 총 페이지 개수
+    const totalPages = Math.ceil(postCount / pageSize);
+
+    res.status(200).json({
+      postList,
+      postCount, // 데이터 총 갯수
+      pageSize, // 페이지 당 보여줄 데이터 개수
+      totalPages, // 보여줄 페이지 개수
+      currentPage: pageNumber, // 현재 페이지
+    });
+    // totalItems, // 데이터 총 갯수
+    // pageSize, // 페이지 당 보여줄 데이터 개수
+    // pageCount, // 보여줄 페이지 개수
+    // pageNumber, // 현재 페이지
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -17,12 +99,72 @@ exports.getPostListPage = async (req, res) => {
 // 판매글 검색 결과 목록
 exports.getSearchResultsPage = async (req, res) => {
   try {
-    const { page, limit } = req.params;
+    const { page } = req.params;
     const { postTitle } = req.query;
 
     const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageSize = limit ? parseInt(limit, 10) : 12;
+    const pageSize = 20;
     const offset = (pageNumber - 1) * pageSize;
+
+    let whereCondition = {
+      isDeleted: false,
+    };
+
+    if (postTitle) {
+      whereCondition.postTitle = {
+        [Op.like]: `%${postTitle}%`, // 부분 일치를 위해 like 사용
+      };
+    }
+
+    const [postCount, postList] = await Promise.all([
+      Post.count({
+        where: whereCondition,
+      }),
+      Post.findAll({
+        attributes: [
+          "postId",
+          "postTitle",
+          "productPrice",
+          "categoryId",
+          "sellStatus",
+          "createdAt",
+        ],
+        limit: pageSize,
+        offset: offset,
+        where: whereCondition,
+
+        include: [
+          {
+            model: Category,
+            attributes: ["categoryName"],
+            // required: false, // Use false in case a post has no image
+          },
+          {
+            model: ProductImage,
+            attributes: ["imgId", "imgName"],
+            // required: false, // Use false in case a post has no image
+            where: {
+              isThumbnail: true,
+            },
+          },
+        ],
+      }),
+    ]);
+    // 총 페이지 개수
+    const totalPages = Math.ceil(postCount / pageSize);
+
+    res.status(200).json({
+      postList,
+      postCount, // 데이터 총 갯수
+      pageSize, // 페이지 당 보여줄 데이터 개수
+      totalPages, // 보여줄 페이지 개수
+      currentPage: pageNumber, // 현재 페이지
+    });
+
+    // totalItems, // 데이터 총 갯수
+    // pageSize, // 페이지 당 보여줄 데이터 개수
+    // pageCount, // 보여줄 페이지 개수
+    // pageNumber, // 현재 페이지
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
