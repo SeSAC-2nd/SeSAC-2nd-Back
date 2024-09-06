@@ -11,24 +11,25 @@ const corsOptions = {
   // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
 };
 
+// CORS 미들웨어 사용, router 위에다가 선언
 app.use(sessionMiddleware);
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// const indexRouter = require("./routes/index");
-// const cartRouter = require("./routes/cart/cart");
-// const userRouter = require("./routes/user/user");
-// const postRouter = require("./routes/post/post");
-// const orderPageRouter = require("./routes/order/orderPage");
-// const orderRouter = require("./routes/order/order");
-// const complaintRouter = require("./routes/complaint/complaint");
-// const adminRouter = require("./routes/admin/admin");
-// const mypageRouter = require("./routes/mypage/mypage");
-// const sellerRouter = require("./routes/seller/seller");
-// const commentRouter = require("./routes/comment/comment");
-// const wishlistRouter = require("./routes/wishlist/wishlist");
-// const addressRouter = require("./routes/address/address");
+const indexRouter = require("./routes/index");
+const cartRouter = require("./routes/cart/cart");
+const userRouter = require("./routes/user/user");
+const postRouter = require("./routes/post/post");
+const orderPageRouter = require("./routes/order/orderPage");
+const orderRouter = require("./routes/order/order");
+const complaintRouter = require("./routes/complaint/complaint");
+const adminRouter = require("./routes/admin/admin");
+const mypageRouter = require("./routes/mypage/mypage");
+const sellerRouter = require("./routes/seller/seller");
+const commentRouter = require("./routes/comment/comment");
+const wishlistRouter = require("./routes/wishlist/wishlist");
+const addressRouter = require("./routes/address/address");
 
 const path = require("path");
 const dotenv = require("dotenv");
@@ -41,23 +42,20 @@ dotenv.config({
 
 const port = process.env.PORT || 5000;
 
-// CORS 미들웨어 사용, router 위에다가 선언
-// app.use(cors());
-
 // router 설정
-// app.use("/", indexRouter);
-// app.use("/cart", cartRouter);
-// app.use("/user", userRouter);
-// app.use("/posts", postRouter);
-// app.use("/order", orderPageRouter);
-// app.use("/orders", orderRouter);
-// app.use("/complaints", complaintRouter);
-// app.use("/admin", adminRouter);
-// app.use("/mypage", mypageRouter);
-// app.use("/sellers", sellerRouter);
-// app.use("/comments", commentRouter);
-// app.use("/wishlist", wishlistRouter);
-// app.use("/addresses", addressRouter);
+app.use("/", indexRouter);
+app.use("/cart", cartRouter);
+app.use("/user", userRouter);
+app.use("/posts", postRouter);
+app.use("/order", orderPageRouter);
+app.use("/orders", orderRouter);
+app.use("/complaints", complaintRouter);
+app.use("/admin", adminRouter);
+app.use("/mypage", mypageRouter);
+app.use("/sellers", sellerRouter);
+app.use("/comments", commentRouter);
+app.use("/wishlist", wishlistRouter);
+app.use("/addresses", addressRouter);
 
 app.get("*", (req, res) => {
   res.send("404 Not Found");
