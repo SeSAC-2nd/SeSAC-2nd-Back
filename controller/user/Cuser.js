@@ -38,7 +38,7 @@ exports.userLogin = async (req, res) => {
         .json({ error: "아이디 또는 비밀번호를 찾을 수 없습니다." });
     }
 
-    if (user.dataValues.isWithdrawn) {
+    if (user.isWithdrawn) {
       return res.status(404).json({ error: "탈퇴한 계정입니다." });
     }
 
@@ -49,7 +49,7 @@ exports.userLogin = async (req, res) => {
       isPasswordValid = comparePw(userPw, manager.managerPw);
       if (isPasswordValid) {
         req.session.user = {
-          managerId: manager.dataValues.managerId,
+          managerId: manager.managerId,
         };
       }
     }
@@ -59,9 +59,9 @@ exports.userLogin = async (req, res) => {
       isPasswordValid = comparePw(userPw, user.userPw);
       if (isPasswordValid) {
         req.session.user = {
-          userId: user.dataValues.userId,
-          profileImg: user.dataValues.profileImg || null, // 프로필 이미지 없으면 null
-          nickname: user.dataValues.nickname,
+          userId: user.userId,
+          profileImg: user.profileImg || null, // 프로필 이미지 없으면 null
+          nickname: user.nickname,
           sellerId: user.Seller ? user.Seller.sellerId : null, // Seller가 있는지 확인
         };
       }
@@ -114,13 +114,13 @@ exports.userRegister = async (req, res) => {
     // phoneNum 중복 확인
     const existingUserByPhoneNum = await User.findOne({ where: { phoneNum } });
     if (existingUserByPhoneNum) {
-      return res.status(409).json({ error: '이미 사용 중인 전화번호입니다.' });
+      return res.status(409).json({ error: "이미 사용 중인 전화번호입니다." });
     }
 
     // email 중복 확인
     const existingUserByEmail = await User.findOne({ where: { email } });
     if (existingUserByEmail) {
-      return res.status(409).json({ error: '이미 사용 중인 이메일입니다.' });
+      return res.status(409).json({ error: "이미 사용 중인 이메일입니다." });
     }
 
     // loginId 정규표현식 검사(가능: 영어소문자/숫자, 6~12 글자)
@@ -216,7 +216,7 @@ exports.checkDuplicatedLoginid = async (req, res) => {
       attributes: ["loginId"],
     });
 
-    if (loginId == manager.dataValues.loginId) {
+    if (loginId == manager.loginId) {
       return res.status(400).json({ error: "이미 사용 중인 로그인 ID입니다." });
     }
 
@@ -357,12 +357,10 @@ exports.updateUser = async (req, res) => {
           .status(500)
           .json({ error: "세션 저장 중 오류가 발생했습니다." });
       }
-      res
-        .status(200)
-        .json({
-          message: "사용자 정보가 성공적으로 업데이트되었습니다.",
-          updatedUser,
-        });
+      res.status(200).json({
+        message: "사용자 정보가 성공적으로 업데이트되었습니다.",
+        updatedUser,
+      });
     });
 
     console.log(req.session);
@@ -390,9 +388,7 @@ exports.getUser = async (req, res) => {
     }
 
     // 성공 응답
-    res
-      .status(200)
-      .json({ user: (({ userPw, ...rest }) => rest)(user.dataValues) });
+    res.status(200).json({ user: (({ userPw, ...rest }) => rest)(user) });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -422,7 +418,7 @@ exports.deleteUser = async (req, res) => {
     // 판매자가 존재하면 판매글 조회
     if (seller) {
       const posts = await Post.findAll({
-        where: { sellerId: seller.dataValues.sellerId },
+        where: { sellerId: seller.sellerId },
       });
 
       // 판매 중인 판매글이 있는지 확인
