@@ -1,13 +1,97 @@
-const { Post, ProductImage, Seller, User } = require("../../models/index");
+const {
+  Post,
+  ProductImage,
+  Seller,
+  User,
+  Category,
+  Delivery,
+  Comment,
+} = require("../../models/index");
+const { Op } = require("sequelize");
 
 // 전체 판매글 목록(정렬 포함)
 exports.getPostListPage = async (req, res) => {
   try {
-    const { page, limit, categoryId } = req.params;
+    const { page, categoryId } = req.params;
+    const { order } = req.query;
 
     const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageSize = limit ? parseInt(limit, 10) : 12;
+    const pageSize = 20;
     const offset = (pageNumber - 1) * pageSize;
+
+    let orderCondition;
+
+    switch (order) {
+      case "priceHigh":
+        orderCondition = [["productPrice", "DESC"]];
+        break;
+      case "priceLow":
+        orderCondition = [["productPrice", "ASC"]];
+        break;
+      case "latest":
+        orderCondition = [["createdAt", "DESC"]];
+        break;
+      default:
+        orderCondition = [["createdAt", "DESC"]];
+        break;
+    }
+    // 판매글이 삭제되지 않은, 블랙리스트의 글이 아닌 것
+    let whereCondition = {
+      isDeleted: false,
+    };
+
+    if (categoryId && categoryId >= 1 && categoryId <= 6) {
+      whereCondition.categoryId = categoryId;
+    }
+    const [postCount, postList] = await Promise.all([
+      Post.count({
+        where: whereCondition,
+      }),
+      Post.findAll({
+        attributes: [
+          "postId",
+          "postTitle",
+          "productPrice",
+          "categoryId",
+          "sellStatus",
+          "createdAt",
+        ],
+        limit: pageSize,
+        offset: offset,
+        order: orderCondition,
+        where: whereCondition,
+
+        include: [
+          {
+            model: Category,
+            attributes: ["categoryName"],
+            // required: false, // Use false in case a post has no image
+          },
+          {
+            model: ProductImage,
+            attributes: ["imgId", "imgName"],
+            // required: false, // Use false in case a post has no image
+            where: {
+              isThumbnail: true,
+            },
+          },
+        ],
+      }),
+    ]);
+    // 총 페이지 개수
+    const totalPages = Math.ceil(postCount / pageSize);
+
+    res.status(200).json({
+      postList,
+      postCount, // 데이터 총 갯수
+      pageSize, // 페이지 당 보여줄 데이터 개수
+      totalPages, // 보여줄 페이지 개수
+      currentPage: pageNumber, // 현재 페이지
+    });
+    // totalItems, // 데이터 총 갯수
+    // pageSize, // 페이지 당 보여줄 데이터 개수
+    // pageCount, // 보여줄 페이지 개수
+    // pageNumber, // 현재 페이지
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -17,12 +101,72 @@ exports.getPostListPage = async (req, res) => {
 // 판매글 검색 결과 목록
 exports.getSearchResultsPage = async (req, res) => {
   try {
-    const { page, limit } = req.params;
+    const { page } = req.params;
     const { postTitle } = req.query;
 
     const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageSize = limit ? parseInt(limit, 10) : 12;
+    const pageSize = 20;
     const offset = (pageNumber - 1) * pageSize;
+
+    let whereCondition = {
+      isDeleted: false,
+    };
+
+    if (postTitle) {
+      whereCondition.postTitle = {
+        [Op.like]: `%${postTitle}%`, // 부분 일치를 위해 like 사용
+      };
+    }
+
+    const [postCount, postList] = await Promise.all([
+      Post.count({
+        where: whereCondition,
+      }),
+      Post.findAll({
+        attributes: [
+          "postId",
+          "postTitle",
+          "productPrice",
+          "categoryId",
+          "sellStatus",
+          "createdAt",
+        ],
+        limit: pageSize,
+        offset: offset,
+        where: whereCondition,
+
+        include: [
+          {
+            model: Category,
+            attributes: ["categoryName"],
+            // required: false, // Use false in case a post has no image
+          },
+          {
+            model: ProductImage,
+            attributes: ["imgId", "imgName"],
+            // required: false, // Use false in case a post has no image
+            where: {
+              isThumbnail: true,
+            },
+          },
+        ],
+      }),
+    ]);
+    // 총 페이지 개수
+    const totalPages = Math.ceil(postCount / pageSize);
+
+    res.status(200).json({
+      postList,
+      postCount, // 데이터 총 갯수
+      pageSize, // 페이지 당 보여줄 데이터 개수
+      totalPages, // 보여줄 페이지 개수
+      currentPage: pageNumber, // 현재 페이지
+    });
+
+    // totalItems, // 데이터 총 갯수
+    // pageSize, // 페이지 당 보여줄 데이터 개수
+    // pageCount, // 보여줄 페이지 개수
+    // pageNumber, // 현재 페이지
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -97,10 +241,59 @@ exports.getPostCreatePage = async (req, res) => {
   return res.send({ result: true });
 };
 
-// 판매글 상세 페이지
+// 판매글 상세 페이지 이동
 exports.getPostDetailPage = async (req, res) => {
   try {
     const { postId } = req.params;
+    // 이미지, 카테고리, 판매글 제목, 가격, 배송사, 배송비, 상품유형, 상품 상태,
+    // 유저의 찜 여부, 판매자 이름, 판매자 프로필, 판매글 내용, 작성 일자
+    // 댓글,대댓글 목록
+    const getPost = await Post.findOne({
+      where: { postId },
+      include: [
+        {
+          model: Category,
+          attributes: ["categoryName"], // 카테고리 이름
+        },
+        {
+          model: ProductImage,
+          attributes: ["imgId", "imgName"], // 이미지 ID와 이름
+          // where: {
+          //   isThumbnail: true, // 썸네일 이미지만 가져오기
+          // },
+        },
+        {
+          model: Seller, // 판매자 정보
+          attributes: ["sellerId", "sellerName", "sellerImg"],
+          include: [
+            {
+              model: Delivery, // 댓글 작성자 정보
+              attributes: ["deliveryName", "deliveryFee"],
+            },
+          ],
+        },
+        {
+          model: Comment, // 댓글
+          include: [
+            {
+              model: User, // 댓글 작성자 정보
+              attributes: ["userId", "userName", "profileImage"], // 댓글 작성자 ID, 이름, 프로필 이미지
+            },
+            {
+              model: Comment, // 대댓글
+              as: "replies", // 대댓글을 위한 alias
+              include: [
+                {
+                  model: User, // 대댓글 작성자 정보
+                  attributes: ["userId", "userName", "profileImage"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    res.json(getPost);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -126,8 +319,8 @@ exports.updatePost = async (req, res) => {
   }
 };
 
-// 판매글 상세 조회
-exports.getPost = async (req, res) => {
+// 판매글 수정 페애지 이동
+exports.getPostUpdatePage = async (req, res) => {
   try {
     const { postId } = req.params;
     const post = await Post.findOne({
