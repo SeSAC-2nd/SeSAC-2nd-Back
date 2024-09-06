@@ -3,6 +3,19 @@ const cors = require("cors");
 const app = express();
 const sessionMiddleware = require("./middlewares/session");
 const { sequelize } = require("./models");
+
+// CORS 설정
+const corsOptions = {
+  origin: "http://localhost:3000", // React 앱의 URL
+  credentials: true,
+  // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+};
+
+app.use(sessionMiddleware);
+app.use(cors(corsOptions));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 // const indexRouter = require("./routes/index");
 // const cartRouter = require("./routes/cart/cart");
 // const userRouter = require("./routes/user/user");
@@ -17,12 +30,6 @@ const { sequelize } = require("./models");
 // const wishlistRouter = require("./routes/wishlist/wishlist");
 // const addressRouter = require("./routes/address/address");
 
-// CORS 설정
-// const corsOptions = {
-//     origin:'http://localhost:3000', // React 앱의 URL
-//     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-// }
-
 const path = require("path");
 const dotenv = require("dotenv");
 
@@ -35,11 +42,7 @@ dotenv.config({
 const port = process.env.PORT || 5000;
 
 // CORS 미들웨어 사용, router 위에다가 선언
-app.use(cors());
-// app.use(cors(corsOptions))
-app.use(sessionMiddleware);
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+// app.use(cors());
 
 // router 설정
 // app.use("/", indexRouter);
