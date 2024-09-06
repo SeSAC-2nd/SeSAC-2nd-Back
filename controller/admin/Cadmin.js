@@ -59,3 +59,23 @@ exports.getOrderLogsPage = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
+// 블랙리스트 추가
+exports.updateBlacklist = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const blacklist = await User.update(
+      { isBlacklist: true },
+      {
+        where: {
+          userId,
+        },
+      }
+    );
+    if (blacklist[0] !== 1) return res.send({ result: false });
+    res.send({ result: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+};

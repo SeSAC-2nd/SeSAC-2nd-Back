@@ -17,4 +17,7 @@ router.get("/blacklist", controller.getBlacklistPage);
 // 거래내역조회 페이지 이동
 router.get("/orderlogs", controller.getOrderLogsPage);
 
+// 블랙리스트 추가
+router.patch("/blacklist", controller.updateBlacklist);
+
 module.exports = router;
