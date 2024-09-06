@@ -1,14 +1,16 @@
-const { Seller, Post } = require('../../models/index');
+const { Seller, Post, db } = require('../../models/index');
 
 // 판매자 등록
 // 판매자 이미지 코드 추가해야 함
 exports.insertSeller = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const { userId } = req.session.user;
     const { sellerName, sellerExplain, deliveryId } = req.body;
 
     const seller = await Seller.findOne({
       where: { userId },
+      transaction: t
     })
 
     if (seller) {
@@ -27,7 +29,12 @@ exports.insertSeller = async (req, res) => {
       deliveryId
     }
 
-    const newSeller = await Seller.create(newData);
+    // 파일이 업로드된 경우, 파일 URL을 updatedData에 추가
+    if (req.file) {
+      newData.sellerImg = req.file.location; // S3에 업로드된 파일의 URL
+    }
+    
+    const newSeller = await Seller.create( newData, { transaction: t });
 
     if (newSeller) {
       // 세션에 sellerId 저장
@@ -35,6 +42,8 @@ exports.insertSeller = async (req, res) => {
         ...req.session.user,
         sellerId: newSeller.sellerId
       };
+
+      await t.commit();
 
       // 세션 저장 후 응답
       req.session.save((err) => {
@@ -44,6 +53,7 @@ exports.insertSeller = async (req, res) => {
         }
         res.status(200).json({ message: '판매자가 성공적으로 등록되었습니다.', seller: newSeller });
       });
+    
     } else {
       res.status(500).json({ result: false, error: '판매자 등록 실패' });
     }
@@ -81,23 +91,28 @@ exports.getSeller = async (req, res) => {
 
 // 판매자 수정
 // 이미지 코드 추가해야 함
+// 판매자 수정
+// 이미지 코드 추가해야 함
 exports.updateSeller = async (req, res) => {
+  const t = await db.sequelize.transaction();
+
   try {
     const { sellerId } = req.session.user;
     const { sellerName, sellerExplain } = req.body;
 
-    // sellerId가 제공되지 않았거나 잘못된 경우 처리
     if (!sellerId) {
       return res.status(400).json({ error: '판매자 ID가 필요합니다.' });
     }
+    
+    const seller = await Seller.findOne({
+      where : {sellerId},
+      transaction: t
+    });
 
-    // 판매자 조회
-    const seller = await Seller.findByPk(sellerId);
     if (!seller) {
       return res.status(404).json({ error: '판매자를 찾을 수 없습니다.' });
     }
 
-    // sellerName 정규표현식 검사 (필요 시)
     if (sellerName) {
       const sellerNameRegex = /^[a-zA-Z0-9가-힣!@#$%^&*]{2,15}$/;
       if (!sellerNameRegex.test(sellerName)) {
@@ -105,23 +120,39 @@ exports.updateSeller = async (req, res) => {
       }
     }
 
-    // 데이터 값이 없을 경우 기존 데이터로 대체
     const updatedData = {
       sellerName: sellerName || seller.sellerName,
       sellerExplain: sellerExplain !== undefined ? sellerExplain : seller.sellerExplain
     };
 
-    // 데이터 업데이트
-    await seller.update(updatedData);
+    // 파일이 업로드된 경우, 파일 URL을 updatedData에 추가
+    if (req.file) {
+      updatedData.sellerImg = req.file.location; // S3에 업로드된 파일의 URL
+    }
 
-    // 성공 응답
-    res.status(200).json({ message: '판매자 정보가 성공적으로 업데이트되었습니다.', seller: updatedData });
+    await seller.update(updatedData, { transaction: t });
+
+    await t.commit();
+
+    res.status(200).json({ 
+      message: '판매자 정보가 성공적으로 업데이트되었습니다.', 
+      seller: updatedData,
+      file: req.file ? {
+        filename: req.file.key,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        url: req.file.location
+      } : null
+    });
 
   } catch (error) {
+    await t.rollback();
     console.error(error);
     res.status(500).send('Internal Server Error');
   }
 }
+
 
 
 // 판매자 삭제
