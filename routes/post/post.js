@@ -10,7 +10,7 @@ router.get("/list/:page/:categoryId", controller.getPostListPage);
 router.get("/list/:page", controller.getSearchResultsPage);
 
 // 판매글 등록
-router.post("/create", controller.insertPost);
+router.post("/create",uploadMultiple('imgName'),logS3UploadResult, controller.insertPost);
 
 // 판매글 작성 페이지 이동
 router.get("/create", controller.getPostCreatePage);
