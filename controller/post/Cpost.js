@@ -300,8 +300,9 @@ exports.getPostCreatePage = async (req, res) => {
 // 판매글 상세 페이지 이동
 exports.getPostDetailPage = async (req, res) => {
   try {
-    const { postId, userId } = req.params;
-    // const { userId } = req.session.user;
+    const { postId } = req.params;
+    const { userId } = req.session.user;
+
     const getPost = await Post.findOne({
       where: { postId },
       attributes: [
@@ -377,7 +378,26 @@ exports.getPostDetailPage = async (req, res) => {
         postId,
       },
     });
-    res.json({ getPost, isInWishlist: !!isInWishlist });
+
+    const checkSession = await userId.findOne({
+      where :{ userId },      
+      include: [
+        {
+          model: Seller,
+          attributes: ["sellerId"],
+        },
+      ],
+    })
+
+    const session = {
+      sellerId : checkSession.Seller.sellerId,
+      userId : checkSession.userId,
+      nickname : checkSession.nickname,
+      profileImg : profileImg,
+    }
+
+    res.json({ getPost, isInWishlist: !!isInWishlist, session });
+    
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

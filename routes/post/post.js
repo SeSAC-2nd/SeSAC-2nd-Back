@@ -24,7 +24,7 @@ router.post(
 router.get("/create", controller.getPostCreatePage);
 
 // 판매글 상세 페이지 이동
-router.get("/page/:postId/:userId", controller.getPostDetailPage);
+router.get("/page/:postId", controller.getPostDetailPage);
 
 // 판매글 수정
 router.patch(
