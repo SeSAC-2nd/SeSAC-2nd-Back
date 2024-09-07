@@ -379,7 +379,7 @@ exports.getPostDetailPage = async (req, res) => {
       },
     });
 
-    const checkSession = await userId.findOne({
+    const checkSession = await User.findOne({
       where :{ userId },      
       include: [
         {
