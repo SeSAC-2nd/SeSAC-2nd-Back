@@ -21,91 +21,65 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-exports.upload = multer({
+const uploadSingle = multer({
   storage: multers3({
     s3: s3,
     bucket: process.env.S3_BUCKET_NAME,
     acl: "public-read",
     contentType: multers3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, `sellers/${Date.now().toString()}-${file.originalname}`);
+      cb(null, `profile/${Date.now().toString()}-${file.originalname}`);
     }
   }),
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('이미지 파일만 업로드 가능합니다.'), false);
-    }
-  },
+  fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024,
   },
 });
 
+const uploadMul = multer({
+  storage: multers3({
+    s3: s3,
+    bucket: process.env.S3_BUCKET_NAME,
+    acl: "public-read",
+    contentType: multers3.AUTO_CONTENT_TYPE,
+    key: function (req, file, cb) {
+      cb(null, `product/${Date.now().toString()}-${file.originalname}`);
+    }
+  }),
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 각 파일 최대 크기 (5MB)
+  }
+});
+
 // S3 업로드 결과 로깅 미들웨어
-exports.logS3UploadResult = (req, res, next) => {
-  if (req.file) {
-    console.log('S3 업로드 성공 >>>>', {
-      fieldname: req.file.fieldname,
-      originalname: req.file.originalname,
-      encoding: req.file.encoding,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      bucket: req.file.bucket,
-      key: req.file.key,
-      location: req.file.location
-    });
+const logS3UploadResult = (req, res, next) => {
+  if (req.file || req.files) {
+    console.log('S3 업로드 성공 >>>> ');
   } else {
     console.log('S3 업로드 실패 또는 파일 없음 >>>>');
   }
   next();
 };
 
-
-
-// exports.upload = multer({
-//   storage: multers3({
-//     s3: s3,
-//     bucket: process.env.S3_BUCKET_NAME,
-//     acl: "public-read",
-//     key: function (req, file, cb) {
-//       console.log('S3 업로드 시작 >>>>');
-//       cb(null, `sellers/${Date.now().toString()}-${file.originalname}`);
-//     },
-//     shouldTransform: function (req, file, cb) {
-//       cb(null, /^image/i.test(file.mimetype));
-//     },
-//     transforms: [{
-//       key: function (req, file, cb) {
-//         cb(null, `sellers/thumb-${Date.now().toString()}-${file.originalname}`);
-//       },
-//       transform: function (req, file, cb) {
-//         cb(null, sharp().resize(100, 100).jpeg());
-//       }
-//     }]
-//   }),
-//   fileFilter: fileFilter,
-//   limits: {
-//     fileSize: 5 * 1024 * 1024,
-//   },
-// });
-
-// // S3 업로드 결과 로깅 미들웨어
-// exports.logS3UploadResult = (req, res, next) => {
-//   if (req.file) {
-//     console.log('S3 업로드 성공 >>>>', {
-//       fieldname: req.file.fieldname,
-//       originalname: req.file.originalname,
-//       encoding: req.file.encoding,
-//       mimetype: req.file.mimetype,
-//       size: req.file.size,
-//       bucket: req.file.bucket,
-//       key: req.file.key,
-//       location: req.file.location
-//     });
-//   } else {
-//     console.log('S3 업로드 실패 또는 파일 없음 >>>>');
-//   }
-//   next();
-// };
+module.exports = {
+  uploadSingle,
+  uploadMultiple: (fieldName) => [
+    (req, res, next) => {
+      req.uploadType = 'mul';
+      next();
+    },
+    uploadMul.array(fieldName, 5),
+    (req, res, next) => {
+      if (req.files) {
+        req.files = req.files.map(file => ({
+          ...file,
+          location: `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${file.key}`
+        }));
+      }
+      next();
+    }
+  ],
+  logS3UploadResult
+};

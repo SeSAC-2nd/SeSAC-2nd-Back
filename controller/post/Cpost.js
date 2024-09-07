@@ -6,6 +6,7 @@ const {
   Category,
   Delivery,
   Comment,
+  sequelize
 } = require("../../models/index");
 const { Op } = require("sequelize");
 
@@ -173,10 +174,14 @@ exports.getSearchResultsPage = async (req, res) => {
   }
 };
 
-// 판매글 등록
+const { Transaction } = require('sequelize');
+
 exports.insertPost = async (req, res) => {
+
+  const t = await sequelize.transaction({
+    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+  });
   try {
-    // sellerId는 session에서 가져오기
     const {
       sellerId,
       postTitle,
@@ -185,10 +190,9 @@ exports.insertPost = async (req, res) => {
       categoryId,
       productType,
       productStatus,
-      isThumbnail,
     } = req.body;
-    // sellStatus 는 '판매중' 자동으로 들어가게
 
+    // 쓰기 작업에 배타적 잠금 적용
     const newPost = await Post.create({
       sellerId,
       postTitle,
@@ -198,21 +202,48 @@ exports.insertPost = async (req, res) => {
       productType,
       productStatus,
       sellStatus: "판매중",
+    }, { 
+      transaction: t,
+      lock: Transaction.LOCK.UPDATE
     });
-    // res.json(newPost);
-    // 판매글이 등록되면 이미지도 등록(여러장)
-    if (newPost) {
-      const newProductImg = await ProductImage.create({
-        postId: newPost.postId,
-        imgName: "image.jpg",
-        isThumbnail,
+
+    if (newPost && req.files && req.files.length > 0) {
+      const imagePromises = req.files.map(async (file, index) => {
+
+        return ProductImage.create({
+          postId: newPost.postId,
+          imgName: file.key,
+          imgUrl: file.location,
+          isThumbnail: index === 0 ? true : false,
+        }, { 
+          transaction: t,
+          lock: Transaction.LOCK.UPDATE
+        });
       });
-      res.json({ newPost, newProductImg });
+
+      await Promise.all(imagePromises);
+    } else if (!req.files || req.files.length === 0) {
+      throw new Error('이미지 파일이 제공되지 않았습니다.');
     }
-    // res.send(false);
+
+    const newProductImg = await ProductImage.findOne({
+      where: { postId: newPost.postId, isThumbnail: true }
+    }, {
+      transaction: t,
+      lock: Transaction.LOCK.SHARE
+    });
+
+    await t.commit();
+    
+    res.status(201).json({
+      newPost,
+      newProductImg
+    });
+  
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    await t.rollback();
+    console.error('판매글 등록 오류:', error);
+    res.status(500).json({ error: '판매글 등록 중 오류가 발생했습니다.' });
   }
 };
 

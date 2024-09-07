@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../../controller/post/Cpost");
+const {uploadMultiple,logS3UploadResult} = require("../../middlewares/multer");
 
 // 전체 판매글 목록(정렬 포함)
 router.get("/list/:page/:categoryId", controller.getPostListPage);
