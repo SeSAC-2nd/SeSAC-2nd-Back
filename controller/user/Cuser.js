@@ -94,6 +94,7 @@ exports.userLogin = async (req, res) => {
 
 // 회원가입
 exports.userRegister = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const {
       loginId,
@@ -110,42 +111,62 @@ exports.userRegister = async (req, res) => {
     } = req.body;
 
     // phoneNum 중복 확인
-    const existingUserByPhoneNum = await User.findOne({ where: { phoneNum } });
+    const existingUserByPhoneNum = await User.findOne({ 
+      where: { phoneNum },
+      transaction: t,
+      lock: Transaction.LOCK.SHARE
+    });
     if (existingUserByPhoneNum) {
+      await t.rollback();
       return res.status(409).json({ error: "이미 사용 중인 전화번호입니다." });
     }
 
     // email 중복 확인
-    const existingUserByEmail = await User.findOne({ where: { email } });
+    const existingUserByEmail = await User.findOne({ 
+      where: { email },    
+      transaction: t,
+      lock: Transaction.LOCK.SHARE
+    });
     if (existingUserByEmail) {
+      await t.rollback();
       return res.status(409).json({ error: "이미 사용 중인 이메일입니다." });
     }
 
     // loginId 정규표현식 검사(가능: 영어소문자/숫자, 6~12 글자)
     const loginIdRegex = /^[a-z0-9]{6,12}$/;
-    if (!loginIdRegex.test(loginId))
+    if (!loginIdRegex.test(loginId)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 로그인 ID입니다." });
-
+    }
+      
     // userPw 정규표현식 검사(필수: 영어/숫자, 가능: 특수문자, 8~16 글자)
     const userPwRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d!@#$%^&*]{8,16}$/;
-    if (!userPwRegex.test(userPw))
+    if (!userPwRegex.test(userPw)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 비밀번호입니다." });
-
+    }
+      
     // nickname 정규표현식 검사(가능: 한글/영어/숫자, 2~15 글자)
     const nicknameRegex = /^[가-힣a-zA-Z0-9]{2,15}$/;
-    if (!nicknameRegex.test(nickname))
+    if (!nicknameRegex.test(nickname)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 닉네임입니다." });
+    }
 
     // userName 정규표현식 검사(필수: 한글, 2~6 글자)
     const userNameRegex = /^[가-힣]{2,6}$/;
-    if (!userNameRegex.test(userName))
+    if (!userNameRegex.test(userName)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 이름입니다." });
+    }
 
     // email 정규표현식 검사(필수: @ 기호, '.' 포함 후 2글자 이상)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!emailRegex.test(email))
+    if (!emailRegex.test(email)){  
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 이메일입니다." });
-
+    }
+    
     // 비밀번호 해싱
     const hashedPw = hashPw(userPw);
 
@@ -160,7 +181,12 @@ exports.userRegister = async (req, res) => {
       phoneNum,
       email,
       balance,
-    });
+    },
+    {
+      transaction: t,
+      lock: Transaction.LOCK.UPDATE
+    } 
+  );
 
     // 주소 생성
     const newAdress = await Address.create({
@@ -172,6 +198,9 @@ exports.userRegister = async (req, res) => {
       isDefault: true,
       receiver: userName,
       phoneNum,
+    },{
+      transaction: t,
+      lock: Transaction.LOCK.UPDATE
     });
 
     // 약관 동의 생성
@@ -179,7 +208,12 @@ exports.userRegister = async (req, res) => {
       userId: newUser.userId,
       isRequiredAgreed,
       isOptionalAgreed,
+    },{
+      transaction: t,
+      lock: Transaction.LOCK.UPDATE
     });
+
+    await t.commit();
 
     // 성공 응답 시 userPw 제외
     if (newUser && newAdress && newTermsAgree)
@@ -193,6 +227,7 @@ exports.userRegister = async (req, res) => {
       });
     else res.status(500).json({ result: false, error: "회원가입 실패" });
   } catch (error) {
+    await t.rollback();
     console.error(error);
     res.status(500).send("Internal Server Error");
   }
