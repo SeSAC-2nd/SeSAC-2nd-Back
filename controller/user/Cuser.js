@@ -367,6 +367,7 @@ exports.updateUser = async (req, res) => {
     // 닉네임과 이메일도 업데이트 데이터에 추가
     if (nickname) updatedData.nickname = nickname;
     if (email) updatedData.email = email;
+    if (req.file) updatedData.sellerImg = req.file.location;
 
     // 데이터 업데이트
     await user.update(updatedData);
@@ -396,7 +397,6 @@ exports.updateUser = async (req, res) => {
       });
     });
 
-    console.log(req.session);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
