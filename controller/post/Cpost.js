@@ -260,32 +260,49 @@ exports.insertPost = async (req, res) => {
 exports.getPostCreatePage = async (req, res) => {
   // 판매자 정보 등록 확인
   // userId는 session 에서 추출
-  const { userId } = req.body;
-  const seller = await Seller.findOne({ where: userId });
-  if (!seller) {
-    return res.send({
-      isSeller: false,
-      message:
-        "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
-    });
+  try{  
+    const { userId } = req.body;
+    const seller = await Seller.findOne({ where: userId });
+    if (!seller) {
+      return res.send({
+        isSeller: false,
+        message:
+          "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
+      });
+    }
+
+    if(seller.userId !== req.session?.user.userId){
+      return res.status(403).json({ error : '권한이 없는 접근입니다.' });
+    }
+  
+    // 블랙리스트 여부 확인
+    const user = await User.findOne({ where: userId });
+    if (user && user.isBlacklist) {
+      return res.send({
+        isBlacklist: true,
+        message: "신고 누적으로 인해 글을 작성할 수 없습니다",
+      });
+    }    
+    const session = {
+      sellerId : seller.sellerId,
+      userId : seller.userId
+    }
+    
+    return res.status(200).json({ result: true, session });
+
+  }catch(err){
+    console.error(error);
+    res.status(500).send("Internal Server Error");
   }
 
-  // 블랙리스트 여부 확인
-  const user = await User.findOne({ where: userId });
-  if (user && user.isBlacklist) {
-    return res.send({
-      isBlacklist: true,
-      message: "신고 누적으로 인해 글을 작성할 수 없습니다",
-    });
-  }
-  return res.send({ result: true });
 };
 
 // 판매글 상세 페이지 이동
 exports.getPostDetailPage = async (req, res) => {
   try {
-    const { postId, userId } = req.params;
-    // const { userId } = req.session.user;
+    const { postId } = req.params;
+    const { userId } = req.session.user;
+
     const getPost = await Post.findOne({
       where: { postId },
       attributes: [
@@ -361,7 +378,26 @@ exports.getPostDetailPage = async (req, res) => {
         postId,
       },
     });
-    res.json({ getPost, isInWishlist: !!isInWishlist });
+
+    const checkSession = await userId.findOne({
+      where :{ userId },      
+      include: [
+        {
+          model: Seller,
+          attributes: ["sellerId"],
+        },
+      ],
+    })
+
+    const session = {
+      sellerId : checkSession.Seller.sellerId,
+      userId : checkSession.userId,
+      nickname : checkSession.nickname,
+      profileImg : profileImg,
+    }
+
+    res.json({ getPost, isInWishlist: !!isInWishlist, session });
+    
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -467,9 +503,12 @@ exports.updatePost = async (req, res) => {
 exports.getPostUpdatePage = async (req, res) => {
   try {
     const { postId } = req.params;
+    console.log('postId >>>>', postId );
+    
     const post = await Post.findOne({
       where: { postId },
       attributes: [
+        "sellerId",
         "postTitle",
         "postContent",
         "productPrice",
@@ -486,7 +525,25 @@ exports.getPostUpdatePage = async (req, res) => {
         },
       ],
     });
-    res.json(post);
+    
+    const checkSeller = await Seller.findOne({
+      where: { sellerId : post.sellerId },
+      attributes:[ 'userId'],
+    })
+    console.log('req.session.user.userId >>>>', req.session.user.userId );
+    console.log('checkSeller.userId >>>>', checkSeller.userId);
+    
+    if( req.session.user.userId !== checkSeller.userId){
+      return res.status(403).json({ error : '권한이 없는 접근입니다.' });
+    }
+
+    const session ={
+      sellerId : post.sellerId,
+      userId : checkSeller.userId
+    }
+
+    res.status(200).json({ post, session });
+
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
