@@ -6,7 +6,8 @@ const {
   Category,
   Delivery,
   Comment,
-  sequelize
+  Wishlist,
+  sequelize,
 } = require("../../models/index");
 const { Op, where } = require("sequelize");
 
@@ -174,12 +175,11 @@ exports.getSearchResultsPage = async (req, res) => {
   }
 };
 
-const { Transaction } = require('sequelize');
+const { Transaction } = require("sequelize");
 
 exports.insertPost = async (req, res) => {
-
   const t = await sequelize.transaction({
-    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ,
   });
   try {
     const {
@@ -192,57 +192,67 @@ exports.insertPost = async (req, res) => {
       productStatus,
     } = req.body;
 
-    const newPost = await Post.create({
-      sellerId,
-      postTitle,
-      postContent,
-      productPrice,
-      categoryId,
-      productType,
-      productStatus,
-      sellStatus: "판매중",
-    }, { 
-      transaction: t,
-      lock: Transaction.LOCK.UPDATE
-    });
+    const newPost = await Post.create(
+      {
+        sellerId,
+        postTitle,
+        postContent,
+        productPrice,
+        categoryId,
+        productType,
+        productStatus,
+        sellStatus: "판매중",
+      },
+      {
+        transaction: t,
+        lock: Transaction.LOCK.UPDATE,
+      }
+    );
 
     if (newPost && req.files && req.files.length > 0) {
       const imagePromises = req.files.map(async (file, index) => {
-        const thumbIndex = index === 0 ? true : false
-        return ProductImage.create({
-          postId: newPost.postId,
-          imgName: file.key,
-          imgUrl: file.location,
-          isThumbnail: thumbIndex,
-        }, { 
-          transaction: t,
-          lock: Transaction.LOCK.UPDATE
-        });
+        const thumbIndex = index === 0 ? true : false;
+        return ProductImage.create(
+          {
+            postId: newPost.postId,
+            imgName: file.key,
+            imgUrl: file.location,
+            isThumbnail: thumbIndex,
+          },
+          {
+            transaction: t,
+            lock: Transaction.LOCK.UPDATE,
+          }
+        );
       });
 
       await Promise.all(imagePromises);
     } else if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: '이미지 파일이 제공되지 않았습니다.' });
+      return res
+        .status(400)
+        .json({ error: "이미지 파일이 제공되지 않았습니다." });
     }
 
-    const newProductImg = await ProductImage.findOne({
-      where: { postId: newPost.postId, isThumbnail: true }
-    }, {
-      transaction: t,
-      lock: Transaction.LOCK.SHARE
-    });
+    const newProductImg = await ProductImage.findOne(
+      {
+        where: { postId: newPost.postId, isThumbnail: true },
+      },
+      {
+        transaction: t,
+        lock: Transaction.LOCK.SHARE,
+      }
+    );
 
     await t.commit();
-    
+
     return res.status(201).json({
       newPost,
-      newProductImg
+      newProductImg,
     });
-  
   } catch (error) {
     await t.rollback();
-    console.error('판매글 등록 오류:', error);
-    res.status(500).json({ error: '판매글 등록 중 오류가 발생했습니다.' });
+    console.error("판매글 등록 오류:", error);
+    res.status(500).json({ error: "판매글 등록 중 오류가 발생했습니다." });
   }
 };
 
@@ -274,7 +284,8 @@ exports.getPostCreatePage = async (req, res) => {
 // 판매글 상세 페이지 이동
 exports.getPostDetailPage = async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { postId, userId } = req.params;
+    // const { userId } = req.session.user;
     const getPost = await Post.findOne({
       where: { postId },
       attributes: [
@@ -344,7 +355,13 @@ exports.getPostDetailPage = async (req, res) => {
         },
       ],
     });
-    res.json(getPost);
+    const isInWishlist = await Wishlist.findOne({
+      where: {
+        userId,
+        postId,
+      },
+    });
+    res.json({ getPost, isInWishlist: !!isInWishlist });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -353,9 +370,8 @@ exports.getPostDetailPage = async (req, res) => {
 
 // 판매글 수정
 exports.updatePost = async (req, res) => {
-
   const t = await sequelize.transaction({
-    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ,
   });
 
   try {
@@ -369,73 +385,77 @@ exports.updatePost = async (req, res) => {
       productStatus,
     } = req.body;
 
-    const checkPost = await Post.findOne({
-      where:{ postId },
-    },{
-      transaction: t,
-      lock: Transaction.LOCK.SHARE
-    })
-    
+    const checkPost = await Post.findOne(
+      {
+        where: { postId },
+      },
+      {
+        transaction: t,
+        lock: Transaction.LOCK.SHARE,
+      }
+    );
+
     if (!checkPost) {
       await t.rollback();
-      return res.status(404).json({ 
-        error : '존재하지 않는 게시글 입니다.' 
+      return res.status(404).json({
+        error: "존재하지 않는 게시글 입니다.",
       });
     }
 
-    const updatedData={
-      sellerId : checkPost.sellerId,
-      postTitle : postTitle || checkPost.postTitle,
-      postContent : postContent || checkPost.postContent,
-      productPrice : productPrice || checkPost.productPrice,
-      categoryId : categoryId || checkPost.categoryId,
-      productType : productType || checkPost.productType,
-      productStatus : productStatus || checkPost.productStatus,
+    const updatedData = {
+      sellerId: checkPost.sellerId,
+      postTitle: postTitle || checkPost.postTitle,
+      postContent: postContent || checkPost.postContent,
+      productPrice: productPrice || checkPost.productPrice,
+      categoryId: categoryId || checkPost.categoryId,
+      productType: productType || checkPost.productType,
+      productStatus: productStatus || checkPost.productStatus,
       sellStatus: "판매중",
-    }
+    };
 
-    await Post.update(
-      updatedData,
-      { 
-        where: { postId },
-        transaction: t,
-        lock: Transaction.LOCK.UPDATE
-      }
-    );
-    
-    await ProductImage.destroy({
-      where:{postId}, 
+    await Post.update(updatedData, {
+      where: { postId },
       transaction: t,
-      lock: Transaction.LOCK.UPDATE
-    })
+      lock: Transaction.LOCK.UPDATE,
+    });
+
+    await ProductImage.destroy({
+      where: { postId },
+      transaction: t,
+      lock: Transaction.LOCK.UPDATE,
+    });
 
     if (checkPost && req.files && req.files.length > 0) {
       const imagePromises = req.files.map(async (file, index) => {
-        const thumbIndex = index === 0 ? true : false
-        return ProductImage.create({
-          postId: checkPost.postId,
-          imgName: file.key,
-          imgUrl: file.location,
-          isThumbnail: thumbIndex,
-        }, { 
-          transaction: t,
-          lock: Transaction.LOCK.UPDATE
-        });
+        const thumbIndex = index === 0 ? true : false;
+        return ProductImage.create(
+          {
+            postId: checkPost.postId,
+            imgName: file.key,
+            imgUrl: file.location,
+            isThumbnail: thumbIndex,
+          },
+          {
+            transaction: t,
+            lock: Transaction.LOCK.UPDATE,
+          }
+        );
       });
 
       await Promise.all(imagePromises);
     } else if (!req.files || req.files.length === 0) {
       await t.rollback();
-      return res.status(400).json({ error: '이미지 파일이 제공되지 않았습니다.' });
+      return res
+        .status(400)
+        .json({ error: "이미지 파일이 제공되지 않았습니다." });
     }
-    
+
     await t.commit();
 
-    return res.status(200).json({ 
-      flag : true,
-      desc : 'flag - true 이면 성공한 응답, false 이면 실패한 응답'
+    return res.status(200).json({
+      flag: true,
+      desc: "flag - true 이면 성공한 응답, false 이면 실패한 응답",
     });
-
   } catch (error) {
     await t.rollback();
     console.error(error);
