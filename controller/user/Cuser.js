@@ -6,6 +6,7 @@ const {
   Seller,
   Order,
   Manager,
+  sequelize
 } = require("../../models/index");
 const { hashPw, comparePw } = require("../../utils/passwordUtils");
 
@@ -13,7 +14,7 @@ const { hashPw, comparePw } = require("../../utils/passwordUtils");
 exports.userLogin = async (req, res) => {
   try {
     const { loginId, userPw } = req.body;
-
+    
     // User 테이블에서 사용자 조회
     const user = await User.findOne({
       where: { loginId },
@@ -94,7 +95,7 @@ exports.userLogin = async (req, res) => {
 
 // 회원가입
 exports.userRegister = async (req, res) => {
-  const t = await db.sequelize.transaction();
+  const t = await sequelize.transaction();
   try {
     const {
       loginId,
@@ -114,7 +115,7 @@ exports.userRegister = async (req, res) => {
     const existingUserByPhoneNum = await User.findOne({ 
       where: { phoneNum },
       transaction: t,
-      lock: Transaction.LOCK.SHARE
+      lock: t.LOCK.SHARE
     });
     if (existingUserByPhoneNum) {
       await t.rollback();
@@ -125,7 +126,7 @@ exports.userRegister = async (req, res) => {
     const existingUserByEmail = await User.findOne({ 
       where: { email },    
       transaction: t,
-      lock: Transaction.LOCK.SHARE
+      lock: t.LOCK.SHARE
     });
     if (existingUserByEmail) {
       await t.rollback();
@@ -184,7 +185,7 @@ exports.userRegister = async (req, res) => {
     },
     {
       transaction: t,
-      lock: Transaction.LOCK.UPDATE
+      lock: t.LOCK.UPDATE
     } 
   );
 
@@ -200,7 +201,7 @@ exports.userRegister = async (req, res) => {
       phoneNum,
     },{
       transaction: t,
-      lock: Transaction.LOCK.UPDATE
+      lock: t.LOCK.UPDATE
     });
 
     // 약관 동의 생성
@@ -210,7 +211,7 @@ exports.userRegister = async (req, res) => {
       isOptionalAgreed,
     },{
       transaction: t,
-      lock: Transaction.LOCK.UPDATE
+      lock: t.LOCK.UPDATE
     });
 
     await t.commit();
