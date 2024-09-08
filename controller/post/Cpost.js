@@ -301,7 +301,7 @@ exports.getPostCreatePage = async (req, res) => {
 exports.getPostDetailPage = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { userId } = req.session.user;
+    const userId = req.session?.user?.userId;
 
     const getPost = await Post.findOne({
       where: { postId },
@@ -372,30 +372,37 @@ exports.getPostDetailPage = async (req, res) => {
         },
       ],
     });
+    if(!getPost){
+      return res.status(404).json({ error : '존재하지 않는 데이터에 대한 접근입니다.' });
+    }
+    
     const isInWishlist = await Wishlist.findOne({
       where: {
         userId,
         postId,
       },
     });
+    
+    let session={};
 
-    const checkSession = await User.findOne({
-      where :{ userId },      
-      include: [
-        {
-          model: Seller,
-          attributes: ["sellerId"],
-        },
-      ],
-    })
-
-    const session = {
-      sellerId : checkSession.Seller.sellerId,
-      userId : checkSession.userId,
-      nickname : checkSession.nickname,
-      profileImg : profileImg,
+    if(userId){
+      const checkSession = await User.findOne({
+        where :{ userId },      
+        include: [
+          {
+            model: Seller,
+            attributes: ["sellerId"],
+          },
+        ],
+      })
+  
+      session = {
+        sellerId : checkSession.Seller?.sellerId || null,
+        userId : checkSession.userId,
+        nickname : checkSession.nickname,
+        profileImg : checkSession.profileImg || '',
+      }
     }
-
     res.json({ getPost, isInWishlist: !!isInWishlist, session });
     
   } catch (error) {
