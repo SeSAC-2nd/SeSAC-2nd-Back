@@ -29,7 +29,7 @@ exports.userLogin = async (req, res) => {
     // Manager 테이블에서 사용자 조회
     const manager = await Manager.findOne({
       where: { loginId },
-      attributes: ["managerId"],
+      attributes: ["managerId",'managerPw'],
     });
 
     // User와 Manager가 모두 없으면 오류 반환
@@ -38,16 +38,22 @@ exports.userLogin = async (req, res) => {
         .status(404)
         .json({ error: "아이디 또는 비밀번호를 찾을 수 없습니다." });
     }
-
-    if (user.isWithdrawn) {
-      return res.status(404).json({ error: "탈퇴한 계정입니다." });
+    if(user){
+      if (user.isWithdrawn) {
+        return res.status(404).json({ error: "탈퇴한 계정입니다." });
+      }
     }
+
+    const checkSeller = await Seller.findOne({
+      where : { userId : user.userId },
+      attributes:['userId', 'sellerId']
+    });
 
     let isPasswordValid = false;
 
     // Manager가 있으면 Manager의 비밀번호 확인
     if (manager) {
-      isPasswordValid = comparePw(userPw, manager.managerPw);
+      isPasswordValid = userPw === manager.managerPw ? true: false;
       if (isPasswordValid) {
         req.session.user = {
           managerId: manager.managerId,
@@ -74,6 +80,11 @@ exports.userLogin = async (req, res) => {
         .status(401)
         .json({ error: "아이디 또는 비밀번호를 찾을 수 없습니다." });
     }
+    const session = {
+      userId : user.userId,
+      sellerId : checkSeller?.sellerId || '',
+      isBlacklist : user.isBlacklist,
+    }
 
     // 세션 저장 후 응답
     req.session.save(function (error) {
@@ -82,7 +93,7 @@ exports.userLogin = async (req, res) => {
         return res.status(500).json({ error: "Session 저장 실패" });
       } else {
         // 세션 저장이 성공했을 때만 응답을 보냄
-        res.send({ result: true });
+        res.send({ result: true, session });
       }
     });
 
