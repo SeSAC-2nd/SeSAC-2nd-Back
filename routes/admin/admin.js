@@ -9,7 +9,7 @@ router.get("/allUser", controller.getAllUserPage);
 router.get("/seller", controller.getSellerPage);
 
 // 신고글조회 페이지 이동
-router.get("/complaint", controller.getComplaintPage);
+router.get("/complaint/:sellerId", controller.getComplaintPage);
 
 // 블랙리스트 관리 페이지 이동
 router.get("/blacklist", controller.getBlacklistPage);

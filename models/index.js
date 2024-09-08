@@ -47,6 +47,10 @@ ComplaintModel.belongsTo(PostModel, { foreignKey: "postId" });
 UserModel.hasMany(ComplaintModel, { foreignKey: "userId" });
 ComplaintModel.belongsTo(UserModel, { foreignKey: "userId" });
 
+// Complaint와 Seller(N:1)
+SellerModel.hasMany(ComplaintModel, { foreignKey: "sellerId" });
+ComplaintModel.belongsTo(SellerModel, { foreignKey: "sellerId" });
+
 // Seller와 Delivery(1:1)
 DeliveryModel.hasOne(SellerModel, { foreignKey: "deliveryId" });
 SellerModel.belongsTo(DeliveryModel, { foreignKey: "deliveryId" });
