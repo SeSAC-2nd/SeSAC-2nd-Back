@@ -180,7 +180,6 @@ exports.insertPost = async (req, res) => {
   const t = await sequelize.transaction({});
   try {
     const {
-      sellerId,
       postTitle,
       postContent,
       productPrice,
@@ -188,7 +187,11 @@ exports.insertPost = async (req, res) => {
       productType,
       productStatus,
     } = req.body;
-
+    
+    const sellerId = req.session.User.sellerId
+    if(sellerId){
+      return res.status(403).json({ error : '권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.' });
+    }
     const newPost = await Post.create(
       {
         sellerId,

@@ -158,7 +158,7 @@ exports.insertReply = async (req, res) => {
 exports.getCommentList = async (req, res) =>{
   try {
       const { postId } = req.body;
-      const { userId } = req.session?.user || '';
+      const userId = req.session?.user?.userId;
 
       const commnetList = await Comment.findAll({
         where:{ postId },        
