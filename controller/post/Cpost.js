@@ -298,7 +298,7 @@ exports.getPostCreatePage = async (req, res) => {
 exports.getPostDetailPage = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { userId } = req.session.user || '';
+    const userId = req.session?.user?.userId;
 
     const getPost = await Post.findOne({
       where: { postId },
@@ -340,9 +340,9 @@ exports.getPostDetailPage = async (req, res) => {
     
 
     let session={};
-    const isInWishlist = {};
+    let isInWishlist = null;
 
-    if( userId !== '' ){
+    if( userId ){
       isInWishlist = await Wishlist.findOne({
         where: {
           userId,
