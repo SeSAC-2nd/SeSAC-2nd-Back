@@ -44,7 +44,20 @@ exports.insertSeller = async (req, res) => {
         sellerId: newSeller.sellerId
       };
 
+      const user = await db.User.findOne({ 
+        where: userId,
+        attributes: [
+          "userId","isBlacklist"
+        ],
+      });
+
       await t.commit();
+
+      const session = {
+        userId : user.userId,
+        sellerId : newSeller.sellerId || '',
+        isBlacklist : user.isBlacklist,
+      }
 
       // 세션 저장 후 응답
       req.session.save((err) => {
@@ -52,7 +65,7 @@ exports.insertSeller = async (req, res) => {
           console.error('세션 저장 오류:', err);
           return res.status(500).json({ error: '세션 저장 중 오류가 발생했습니다.' });
         }
-        res.status(200).json({ message: '판매자가 성공적으로 등록되었습니다.', seller: newSeller });
+        res.status(200).json({ message: '판매자가 성공적으로 등록되었습니다.', seller: session });
       });
     
     } else {
