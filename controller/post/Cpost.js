@@ -435,13 +435,12 @@ exports.updatePost = async (req, res) => {
       lock: t.LOCK.UPDATE,
     });
 
-    await ProductImage.destroy({
-      where: { postId },
-      transaction: t,
-      lock: t.LOCK.UPDATE,
-    });
-
-    if (checkPost && req.files && req.files.length > 0) {
+    if (checkPost && req.files && req.files.length > 0) {    
+      await ProductImage.destroy({
+        where: { postId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
       const imagePromises = req.files.map(async (file, index) => {
         const thumbIndex = index === 0 ? true : false;
         return ProductImage.create(
@@ -457,15 +456,9 @@ exports.updatePost = async (req, res) => {
           }
         );
       });
-
       await Promise.all(imagePromises);
-    } else if (!req.files || req.files.length === 0) {
-      await t.rollback();
-      return res
-        .status(400)
-        .json({ error: "이미지 파일이 제공되지 않았습니다." });
     }
-
+    
     await t.commit();
 
     return res.status(200).json({
