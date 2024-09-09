@@ -175,15 +175,11 @@ exports.getSearchResultsPage = async (req, res) => {
   }
 };
 
-const { Transaction } = require("sequelize");
-
+// 판매글 등록
 exports.insertPost = async (req, res) => {
-  const t = await sequelize.transaction({
-    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ,
-  });
+  const t = await sequelize.transaction({});
   try {
     const {
-      sellerId,
       postTitle,
       postContent,
       productPrice,
@@ -191,7 +187,11 @@ exports.insertPost = async (req, res) => {
       productType,
       productStatus,
     } = req.body;
-
+    
+    const sellerId = req.session.User.sellerId
+    if(sellerId){
+      return res.status(403).json({ error : '권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.' });
+    }
     const newPost = await Post.create(
       {
         sellerId,
@@ -259,9 +259,9 @@ exports.insertPost = async (req, res) => {
 // 판매글 작성 페이지 이동
 exports.getPostCreatePage = async (req, res) => {
   // 판매자 정보 등록 확인
-  // userId는 session 에서 추출
-  try{  
-    const { userId } = req.body;
+  // userId는 session 에서 추출  
+  try{
+    const { userId } = req.session.user;
     const seller = await Seller.findOne({ where: userId });
     if (!seller) {
       return res.send({
@@ -334,58 +334,25 @@ exports.getPostDetailPage = async (req, res) => {
             },
           ],
         },
-        {
-          model: Comment, // 댓글
-          attributes: [
-            "comId",
-            "userId",
-            "comContent",
-            "isSecret",
-            "createdAt",
-            "isDeleted",
-          ],
-          include: [
-            {
-              model: User, // 댓글 작성자 정보
-              attributes: ["userId", "userName", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
-            },
-            {
-              model: Comment, // 대댓글
-              attributes: [
-                "comId",
-                "userId",
-                "comContent",
-                "isSecret",
-                "createdAt",
-                "isDeleted",
-                "parentComId",
-              ],
-              as: "replies",
-              include: [
-                {
-                  model: User, // 대댓글 작성자 정보
-                  attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
-                },
-              ],
-            },
-          ],
-        },
+
       ],
     });
     if(!getPost){
       return res.status(404).json({ error : '존재하지 않는 데이터에 대한 접근입니다.' });
     }
     
-    const isInWishlist = await Wishlist.findOne({
-      where: {
-        userId,
-        postId,
-      },
-    });
-    
-    let session={};
 
-    if(userId){
+    let session={};
+    let isInWishlist = null;
+
+    if( userId ){
+      isInWishlist = await Wishlist.findOne({
+        where: {
+          userId,
+          postId,
+        },
+      });      
+      
       const checkSession = await User.findOne({
         where :{ userId },      
         include: [
@@ -403,6 +370,7 @@ exports.getPostDetailPage = async (req, res) => {
         profileImg : checkSession.profileImg || '',
       }
     }
+    
     res.json({ getPost, isInWishlist: !!isInWishlist, session });
     
   } catch (error) {
