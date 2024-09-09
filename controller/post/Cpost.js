@@ -191,11 +191,9 @@ exports.insertPost = async (req, res) => {
     const sellerId = req.session.user.sellerId;
 
     if (!sellerId) {
-      return res
-        .status(403)
-        .json({
-          error: "권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.",
-        });
+      return res.status(403).json({
+        error: "권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.",
+      });
     }
 
     const newPost = await Post.create(
@@ -268,7 +266,7 @@ exports.getPostCreatePage = async (req, res) => {
   // userId는 session 에서 추출
   try {
     const { userId } = req.session.user;
-    const seller = await Seller.findOne({ where: userId });
+    const seller = await Seller.findOne({ where: { userId } });
     let isSeller = false;
     let isBlacklist = false;
 
