@@ -6,6 +6,7 @@ const {
   Seller,
   Order,
   Manager,
+  sequelize
 } = require("../../models/index");
 const { hashPw, comparePw } = require("../../utils/passwordUtils");
 
@@ -13,7 +14,7 @@ const { hashPw, comparePw } = require("../../utils/passwordUtils");
 exports.userLogin = async (req, res) => {
   try {
     const { loginId, userPw } = req.body;
-
+    
     // User 테이블에서 사용자 조회
     const user = await User.findOne({
       where: { loginId },
@@ -28,7 +29,7 @@ exports.userLogin = async (req, res) => {
     // Manager 테이블에서 사용자 조회
     const manager = await Manager.findOne({
       where: { loginId },
-      attributes: ["managerId"],
+      attributes: ["managerId",'managerPw'],
     });
 
     // User와 Manager가 모두 없으면 오류 반환
@@ -37,16 +38,22 @@ exports.userLogin = async (req, res) => {
         .status(404)
         .json({ error: "아이디 또는 비밀번호를 찾을 수 없습니다." });
     }
-
-    if (user.isWithdrawn) {
-      return res.status(404).json({ error: "탈퇴한 계정입니다." });
+    if(user){
+      if (user.isWithdrawn) {
+        return res.status(404).json({ error: "탈퇴한 계정입니다." });
+      }
     }
+
+    const checkSeller = await Seller.findOne({
+      where : { userId : user.userId },
+      attributes:['userId', 'sellerId']
+    });
 
     let isPasswordValid = false;
 
     // Manager가 있으면 Manager의 비밀번호 확인
     if (manager) {
-      isPasswordValid = comparePw(userPw, manager.managerPw);
+      isPasswordValid = userPw === manager.managerPw ? true: false;
       if (isPasswordValid) {
         req.session.user = {
           managerId: manager.managerId,
@@ -73,6 +80,11 @@ exports.userLogin = async (req, res) => {
         .status(401)
         .json({ error: "아이디 또는 비밀번호를 찾을 수 없습니다." });
     }
+    const session = {
+      userId : user.userId,
+      sellerId : checkSeller?.sellerId || '',
+      isBlacklist : user.isBlacklist,
+    }
 
     // 세션 저장 후 응답
     req.session.save(function (error) {
@@ -81,7 +93,7 @@ exports.userLogin = async (req, res) => {
         return res.status(500).json({ error: "Session 저장 실패" });
       } else {
         // 세션 저장이 성공했을 때만 응답을 보냄
-        res.send({ result: true });
+        res.send({ result: true, session });
       }
     });
 
@@ -94,6 +106,7 @@ exports.userLogin = async (req, res) => {
 
 // 회원가입
 exports.userRegister = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const {
       loginId,
@@ -110,42 +123,62 @@ exports.userRegister = async (req, res) => {
     } = req.body;
 
     // phoneNum 중복 확인
-    const existingUserByPhoneNum = await User.findOne({ where: { phoneNum } });
+    const existingUserByPhoneNum = await User.findOne({ 
+      where: { phoneNum },
+      transaction: t,
+      lock: t.LOCK.SHARE
+    });
     if (existingUserByPhoneNum) {
+      await t.rollback();
       return res.status(409).json({ error: "이미 사용 중인 전화번호입니다." });
     }
 
     // email 중복 확인
-    const existingUserByEmail = await User.findOne({ where: { email } });
+    const existingUserByEmail = await User.findOne({ 
+      where: { email },    
+      transaction: t,
+      lock: t.LOCK.SHARE
+    });
     if (existingUserByEmail) {
+      await t.rollback();
       return res.status(409).json({ error: "이미 사용 중인 이메일입니다." });
     }
 
     // loginId 정규표현식 검사(가능: 영어소문자/숫자, 6~12 글자)
     const loginIdRegex = /^[a-z0-9]{6,12}$/;
-    if (!loginIdRegex.test(loginId))
+    if (!loginIdRegex.test(loginId)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 로그인 ID입니다." });
-
+    }
+      
     // userPw 정규표현식 검사(필수: 영어/숫자, 가능: 특수문자, 8~16 글자)
     const userPwRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d!@#$%^&*]{8,16}$/;
-    if (!userPwRegex.test(userPw))
+    if (!userPwRegex.test(userPw)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 비밀번호입니다." });
-
+    }
+      
     // nickname 정규표현식 검사(가능: 한글/영어/숫자, 2~15 글자)
     const nicknameRegex = /^[가-힣a-zA-Z0-9]{2,15}$/;
-    if (!nicknameRegex.test(nickname))
+    if (!nicknameRegex.test(nickname)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 닉네임입니다." });
+    }
 
     // userName 정규표현식 검사(필수: 한글, 2~6 글자)
     const userNameRegex = /^[가-힣]{2,6}$/;
-    if (!userNameRegex.test(userName))
+    if (!userNameRegex.test(userName)){
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 이름입니다." });
+    }
 
     // email 정규표현식 검사(필수: @ 기호, '.' 포함 후 2글자 이상)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!emailRegex.test(email))
+    if (!emailRegex.test(email)){  
+      await t.rollback();
       return res.status(400).json({ error: "유효하지 않은 이메일입니다." });
-
+    }
+    
     // 비밀번호 해싱
     const hashedPw = hashPw(userPw);
 
@@ -160,7 +193,12 @@ exports.userRegister = async (req, res) => {
       phoneNum,
       email,
       balance,
-    });
+    },
+    {
+      transaction: t,
+      lock: t.LOCK.UPDATE
+    } 
+  );
 
     // 주소 생성
     const newAdress = await Address.create({
@@ -172,6 +210,9 @@ exports.userRegister = async (req, res) => {
       isDefault: true,
       receiver: userName,
       phoneNum,
+    },{
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
 
     // 약관 동의 생성
@@ -179,7 +220,12 @@ exports.userRegister = async (req, res) => {
       userId: newUser.userId,
       isRequiredAgreed,
       isOptionalAgreed,
+    },{
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
+
+    await t.commit();
 
     // 성공 응답 시 userPw 제외
     if (newUser && newAdress && newTermsAgree)
@@ -193,6 +239,7 @@ exports.userRegister = async (req, res) => {
       });
     else res.status(500).json({ result: false, error: "회원가입 실패" });
   } catch (error) {
+    await t.rollback();
     console.error(error);
     res.status(500).send("Internal Server Error");
   }
@@ -332,6 +379,7 @@ exports.updateUser = async (req, res) => {
     // 닉네임과 이메일도 업데이트 데이터에 추가
     if (nickname) updatedData.nickname = nickname;
     if (email) updatedData.email = email;
+    if (req.file) updatedData.sellerImg = req.file.location;
 
     // 데이터 업데이트
     await user.update(updatedData);
@@ -361,7 +409,6 @@ exports.updateUser = async (req, res) => {
       });
     });
 
-    console.log(req.session);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

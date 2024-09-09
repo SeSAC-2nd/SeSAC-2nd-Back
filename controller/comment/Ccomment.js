@@ -5,24 +5,36 @@ exports.insertComment = async (req, res) => {
   try {
     const { postId } = req.params;
 
-    //   const { userId } = req.session.user;
+    // const { userId } = req.session.user;
     // userId는 세션에서 가져오기
-    const { comContent, isSecret, userId } = req.body;
+    const userId = req.session?.user.userId || undefined;
+    
+    if(!userId){
+      return res.status(403).json({ 
+        error : '접속 상태가 아닙니다.',
+        flag : false 
+      });
+    }
+
+    const { comContent, isSecret } = req.body;
+    
     const insertCom = await Comment.create({
       comContent,
       postId,
       userId,
       isSecret,
     });
-    // const commWithUser = await Comment.findOne({
-    //   where: { comId: insertCom.comId },
-    //   include: [{ model: User, attributes: ["userNick"] }], // User 정보 포함
-    // });
+
+    const commWithUser = await Comment.findOne({
+      where: { comId: insertCom.comId },
+      include: [{ model: User, attributes: ["nickname",'profileImg'] }], // User 정보 포함
+    });
     // res.json({
     //   commWithUser,
     //   sessionUser: req.session.user ? req.session.user : null,
     // });
-    res.json(insertCom);
+
+    res.json(commWithUser);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

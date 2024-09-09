@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../../controller/user/Cuser");
+const {uploadSingle, logS3UploadResult} = require('../../middlewares/multer');
 
 // 로그인
 router.post("/login", controller.userLogin);
@@ -21,7 +22,7 @@ router.post("/checkPassword", controller.checkPassword);
 router.get("/logout", controller.userLogout);
 
 // 회원 정보 수정
-router.patch("/:userId", controller.updateUser);
+router.patch("/:userId", uploadSingle.single(''), logS3UploadResult, controller.updateUser);
 
 // 회원 조회
 router.get("/:userId", controller.getUser);

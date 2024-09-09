@@ -15,7 +15,6 @@ const {
 exports.getMyPage = async (req, res) => {
   try {
     const { userId } = req.session.user;
-
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {
       return res.status(400).json({ error: "사용자 ID가 필요합니다." });
@@ -23,7 +22,7 @@ exports.getMyPage = async (req, res) => {
 
     // [사용자] 사용자 조회 (회원 이름, 잔고)
     const user = await User.findOne({
-      attributes: ["nickname", "balance"],
+      attributes: ["nickname", "balance", "profileImg"],
       where: { userId },
     });
 
