@@ -7,6 +7,7 @@ const {
   Category,
   Wishlist,
   Address,
+  OrderLogs,
 } = require("../../models/index");
 
 // 전체적으로 userId는 세션으로 바꾸는 것으로 수정
@@ -45,7 +46,7 @@ exports.getMyPage = async (req, res) => {
     // [구매 내역] 구매 내역 조회(판매글 제목, 상품 가격, 이미지 파일명)
     if (postIds.length > 0) {
       purchasedPosts = await Post.findAll({
-        attributes: ["postTitle", "productPrice"],
+        attributes: ["postId", "postTitle", "productPrice"],
         where: { postId: postIds },
         include: [
           {
@@ -74,7 +75,7 @@ exports.getMyPage = async (req, res) => {
       const sellerId = seller.sellerId;
 
       sellerPosts = await Post.findAll({
-        attributes: ["postTitle", "productPrice"],
+        attributes: ["postId", "postTitle", "productPrice"],
         where: { sellerId },
         include: [
           {
@@ -332,12 +333,18 @@ exports.getOrderHistoryPage = async (req, res) => {
     let orderHistoryMessage = "";
 
     orderHistory = await Order.findAll({
-      attributes: ["allOrderId", "deliveryStatus", "isConfirmed"],
+      attributes: [
+        "orderId",
+        "allOrderId",
+        "deliveryStatus",
+        "isConfirmed",
+        "invoiceNumber",
+      ],
       where: { userId },
       include: [
         {
           model: Post,
-          attributes: ["postTitle", "productPrice"],
+          attributes: ["postId", "postTitle", "productPrice"],
           include: [
             {
               model: ProductImage,
@@ -352,6 +359,22 @@ exports.getOrderHistoryPage = async (req, res) => {
 
     if (orderHistory.length === 0) {
       orderHistoryMessage = "구매 내역이 없습니다.";
+    } else {
+      // '배송 중'인 주문의 deliveryStatus를 '배송 완료'로 업데이트
+      const deliveryInProgressOrders = orderHistory.filter(
+        (order) => order.deliveryStatus === "배송 중"
+      );
+
+      if (deliveryInProgressOrders.length > 0) {
+        await Promise.all(
+          deliveryInProgressOrders.map((order) =>
+            Order.update(
+              { deliveryStatus: "배송 완료" },
+              { where: { orderId: order.orderId } }
+            )
+          )
+        );
+      }
     }
 
     return res.status(200).json({
@@ -450,6 +473,86 @@ exports.getAddressPage = async (req, res) => {
       address,
       addressMessage,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// 구매 확정
+exports.updateOrderConfirm = async (req, res) => {
+  try {
+    const { orderId, postId } = req.body;
+
+    // 해당 주문 조회
+    const order = await Order.findOne({
+      where: { orderId },
+      attributes: ["orderId", "userId", "deliveryPrice"],
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
+    }
+
+    // 해당 판매글 조회
+    const postDetail = await Post.findOne({
+      where: { postId },
+      attributes: ["postId", "productPrice"],
+      include: [
+        {
+          model: Seller, // 판매자 정보
+          attributes: ["sellerId"],
+          include: [
+            {
+              model: User,
+              attributes: ["userId", "balance"],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!postDetail) {
+      return res.status(404).json({ error: "판매글을 찾을 수 없습니다." });
+    }
+
+    // 구매 확정 및 판매 상태 업데이트
+    await Promise.all([
+      Order.update(
+        { isConfirmed: true },
+        {
+          where: { orderId },
+        }
+      ),
+      Post.update({ sellStatus: "판매 완료" }, { where: { postId } }),
+    ]);
+
+    // 판매글 등록한 판매자의 회원 정보
+    const seller = postDetail.Seller.User;
+    const orderLogPrice = order.deliveryPrice + postDetail.productPrice;
+
+    // 판매자의 잔고에 돈 입금
+    await User.update(
+      { balance: seller.balance + orderLogPrice },
+      { where: { userId: seller.userId } }
+    );
+
+    // 중개 내역에 '출금'으로 입력
+    const newOrderLog = await OrderLogs.create({
+      managerId: 1,
+      orderId,
+      userId: order.userId,
+      postId,
+      orderLogPrice,
+      deposit: null,
+      withdraw: orderLogPrice,
+      logStatus: "출금",
+      createdAt: new Date(),
+    });
+
+    res
+      .status(200)
+      .json({ message: "주문이 성공적으로 처리되었습니다.", newOrderLog });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
