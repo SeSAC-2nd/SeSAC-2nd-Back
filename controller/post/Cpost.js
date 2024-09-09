@@ -268,17 +268,19 @@ exports.getPostCreatePage = async (req, res) => {
 
     if (!seller) {
       return res.send({
-        isSeller: false,
-        isBlacklist: false,
+        isSeller,
+        isBlacklist,
         error:
           "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
       });
+    }else{
+      isSeller = true;
     }
 
     if(seller.userId !== req.session?.user.userId){
       return res.status(403).json({ 
-        isSeller: false,
-        isBlacklist: false,
+        isSeller,
+        isBlacklist,
         error : '권한이 없는 접근입니다.' 
       });
     }
@@ -286,9 +288,10 @@ exports.getPostCreatePage = async (req, res) => {
     // 블랙리스트 여부 확인
     const user = await User.findOne({ where: userId });
     if (user && user.isBlacklist) {
+      isBlacklist = true;
       return res.send({
-        isSeller: false,
-        isBlacklist: true,
+        isSeller,
+        isBlacklist,
         message: "신고 누적으로 인해 글을 작성할 수 없습니다",
       });
     }    
@@ -300,8 +303,8 @@ exports.getPostCreatePage = async (req, res) => {
     return res.status(200).json({ 
       result: true, 
       session,
-      isSeller: false,
-      isBlacklist: false, 
+      isSeller,
+      isBlacklist, 
     });
 
   }catch(err){
