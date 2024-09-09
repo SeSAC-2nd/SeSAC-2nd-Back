@@ -175,12 +175,9 @@ exports.getSearchResultsPage = async (req, res) => {
   }
 };
 
-const { Transaction } = require("sequelize");
-
+// 판매글 등록
 exports.insertPost = async (req, res) => {
-  const t = await sequelize.transaction({
-    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ,
-  });
+  const t = await sequelize.transaction({});
   try {
     const {
       sellerId,
@@ -260,7 +257,7 @@ exports.insertPost = async (req, res) => {
 exports.getPostCreatePage = async (req, res) => {
   // 판매자 정보 등록 확인
   // userId는 session 에서 추출
-  const { userId } = req.body;
+  const { userId } = req.session.user;
   const seller = await Seller.findOne({ where: userId });
   if (!seller) {
     return res.send({
@@ -284,8 +281,8 @@ exports.getPostCreatePage = async (req, res) => {
 // 판매글 상세 페이지 이동
 exports.getPostDetailPage = async (req, res) => {
   try {
-    const { postId, userId } = req.params;
-    // const { userId } = req.session.user;
+    const { postId } = req.params;
+    const { userId } = req.session.user;
     const getPost = await Post.findOne({
       where: { postId },
       attributes: [
@@ -317,42 +314,42 @@ exports.getPostDetailPage = async (req, res) => {
             },
           ],
         },
-        {
-          model: Comment, // 댓글
-          attributes: [
-            "comId",
-            "userId",
-            "comContent",
-            "isSecret",
-            "createdAt",
-            "isDeleted",
-          ],
-          include: [
-            {
-              model: User, // 댓글 작성자 정보
-              attributes: ["userId", "userName", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
-            },
-            {
-              model: Comment, // 대댓글
-              attributes: [
-                "comId",
-                "userId",
-                "comContent",
-                "isSecret",
-                "createdAt",
-                "isDeleted",
-                "parentComId",
-              ],
-              as: "replies",
-              include: [
-                {
-                  model: User, // 대댓글 작성자 정보
-                  attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
-                },
-              ],
-            },
-          ],
-        },
+        // {
+        //   model: Comment, // 댓글
+        //   attributes: [
+        //     "comId",
+        //     "userId",
+        //     "comContent",
+        //     "isSecret",
+        //     "createdAt",
+        //     "isDeleted",
+        //   ],
+        //   include: [
+        //     {
+        //       model: User, // 댓글 작성자 정보
+        //       attributes: ["userId", "userName", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
+        //     },
+        //     {
+        //       model: Comment, // 대댓글
+        //       attributes: [
+        //         "comId",
+        //         "userId",
+        //         "comContent",
+        //         "isSecret",
+        //         "createdAt",
+        //         "isDeleted",
+        //         "parentComId",
+        //       ],
+        //       as: "replies",
+        //       include: [
+        //         {
+        //           model: User, // 대댓글 작성자 정보
+        //           attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+        //         },
+        //       ],
+        //     },
+        //   ],
+        // },
       ],
     });
     const isInWishlist = await Wishlist.findOne({
