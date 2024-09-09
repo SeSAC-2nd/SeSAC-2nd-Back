@@ -111,7 +111,7 @@ exports.getMyPage = async (req, res) => {
 // 회원 정보 수정 페이지 이동
 exports.getEditUserPage = async (req, res) => {
   try {
-    const { userId } = req.session.user;
+    const userId = req.session?.user.userId;
 
     // userId가 제공되지 않았거나 잘못된 경우 처리
     if (!userId) {

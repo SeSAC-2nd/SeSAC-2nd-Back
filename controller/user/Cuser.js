@@ -112,7 +112,7 @@ exports.userRegister = async (req, res) => {
       email,
       zipCode,
       address,
-      detailedAdress,
+      detailedAddress,
       isRequiredAgreed,
       isOptionalAgreed,
     } = req.body;
@@ -203,7 +203,7 @@ exports.userRegister = async (req, res) => {
         addName: "집",
         zipCode,
         address,
-        detailedAdress,
+        detailedAddress,
         isDefault: true,
         receiver: userName,
         phoneNum,
