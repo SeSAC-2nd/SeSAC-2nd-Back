@@ -14,7 +14,6 @@ const { hashPw, comparePw } = require("../../utils/passwordUtils");
 exports.userLogin = async (req, res) => {
   try {
     const { loginId, userPw } = req.body;
-
     // User 테이블에서 사용자 조회
     const user = await User.findOne({
       where: { loginId },
@@ -25,13 +24,11 @@ exports.userLogin = async (req, res) => {
         },
       ],
     });
-
     // Manager 테이블에서 사용자 조회
     const manager = await Manager.findOne({
       where: { loginId },
-      attributes: ["managerId"],
+      attributes: ["managerId", "managerPw"],
     });
-
     // User와 Manager가 모두 없으면 오류 반환
     if (!user && !manager) {
       return res
@@ -41,9 +38,7 @@ exports.userLogin = async (req, res) => {
     if (user && user.isWithdrawn) {
       return res.status(404).json({ error: "탈퇴한 계정입니다." });
     }
-
     let isPasswordValid = false;
-
     // Manager가 있으면 Manager의 비밀번호 확인 후 세션에 저장
     if (manager) {
       isPasswordValid = userPw === manager.managerPw ? true : false;
@@ -51,7 +46,6 @@ exports.userLogin = async (req, res) => {
         req.session.user = {
           managerId: manager.managerId,
         };
-
         // 세션 저장 후 응답
         return req.session.save(function (error) {
           if (error) {
@@ -60,7 +54,7 @@ exports.userLogin = async (req, res) => {
           }
           // 세션 저장이 성공했을 때만 응답을 보냄
           console.log("Session:", req.session); // 테스트용
-          return res.send({ result: true, session: req.session.user });
+          return res.send({ result: true, session: { admin: true } });
         });
       } else {
         // 비번이 일치하지 않으면
@@ -69,7 +63,6 @@ exports.userLogin = async (req, res) => {
           .json({ error: "아이디 또는 비밀번호를 찾을 수 없습니다." });
       }
     }
-
     // User가 있으면 User의 비밀번호 확인 후 세션에 저장
     if (!isPasswordValid && user) {
       isPasswordValid = comparePw(userPw, user.userPw);
@@ -80,11 +73,9 @@ exports.userLogin = async (req, res) => {
         });
         req.session.user = {
           userId: user.userId,
-          profileImg: user.profileImg || null, // 프로필 이미지 없으면 null
-          nickname: user.nickname,
           sellerId: checkSeller ? checkSeller.sellerId : null, // Seller가 있는지 확인
+          isBlacklist: user.isBlacklist,
         };
-
         // 세션 저장 후 응답
         return req.session.save(function (error) {
           if (error) {
