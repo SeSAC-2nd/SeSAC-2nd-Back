@@ -284,7 +284,7 @@ exports.getUserPostListPage = async (req, res) => {
       const sellerId = seller.sellerId;
 
       sellerPosts = await Post.findAll({
-        attributes: ["postTitle", "productPrice"],
+        attributes: ["postId", "postTitle", "productPrice"],
         where: { sellerId },
         include: [
           {
