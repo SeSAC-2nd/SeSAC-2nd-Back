@@ -1,5 +1,6 @@
 const session = require("express-session");
-const { Comment, User } = require("../../models/index");
+const { Comment, User, Seller } = require("../../models/index");
+const { where } = require("sequelize");
 
 // 댓글 등록
 exports.insertComment = async (req, res) => {
@@ -157,11 +158,17 @@ exports.insertReply = async (req, res) => {
 // 댓글 목록 보여주기
 exports.getCommentList = async (req, res) =>{
   try {
-      const { postId } = req.body;
+      const postId = req.params.postId;
       const userId = req.session?.user?.userId;
 
-      const commnetList = await Comment.findAll({
-        where:{ postId , isDeleted : false },        
+      console.log(postId);
+      
+      const commentList = await Comment.findAll({
+        where: { 
+          postId, 
+          isDeleted: false, 
+          parentComId: null 
+        },        
         attributes: [
           "comId",
           "userId",
@@ -175,29 +182,33 @@ exports.getCommentList = async (req, res) =>{
             attributes: ["userId", "nickname", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
           },
           {
-            model: Comment, // 대댓
-            where: { isDeleted : false },
+            model: Comment, // 대댓글
+            as: "replies",
+            where: { isDeleted: false }, // 삭제되지 않은 대댓글만 가져옵니다
+            required: false, // LEFT JOIN을 사용하여 대댓글이 없는 경우에도 메인 댓글을 가져옵니다
             attributes: [
               "comId",
               "userId",
               "comContent",
               "isSecret",
               "createdAt",
-              "isDeleted",
               "parentComId",
             ],
-            as: "replies",
             include: [
               {
                 model: User, // 대댓글 작성자 정보
-                attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+                attributes: ["userId", "nickname", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
               },
             ],
           },
         ],
+        order: [
+          ['createdAt', 'ASC'], // 메인 댓글을 생성 시간 오름차순으로 정렬
+          [{ model: Comment, as: 'replies' }, 'createdAt', 'ASC'], // 대댓글도 생성 시간 오름차순으로 정렬
+        ],
       });
 
-      const session = {};
+      let session = {};
 
       if(userId){      
           const checkSession = await User.findOne({
@@ -218,7 +229,7 @@ exports.getCommentList = async (req, res) =>{
         }
       }
 
-    res.status(200).json({ commnetList, session });
+    res.status(200).json({ commentList, session });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
