@@ -205,7 +205,7 @@ exports.insertPost = async (req, res) => {
       },
       {
         transaction: t,
-        lock: Transaction.LOCK.UPDATE,
+        lock: t.LOCK.UPDATE,
       }
     );
 
@@ -221,7 +221,7 @@ exports.insertPost = async (req, res) => {
           },
           {
             transaction: t,
-            lock: Transaction.LOCK.UPDATE,
+            lock: t.LOCK.UPDATE,
           }
         );
       });
@@ -239,7 +239,7 @@ exports.insertPost = async (req, res) => {
       },
       {
         transaction: t,
-        lock: Transaction.LOCK.SHARE,
+        lock: t.LOCK.SHARE,
       }
     );
 
@@ -263,22 +263,31 @@ exports.getPostCreatePage = async (req, res) => {
   try{
     const { userId } = req.session.user;
     const seller = await Seller.findOne({ where: userId });
+    let isSeller = false;
+    let isBlacklist = false;
+
     if (!seller) {
       return res.send({
         isSeller: false,
-        message:
+        isBlacklist: false,
+        error:
           "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
       });
     }
 
     if(seller.userId !== req.session?.user.userId){
-      return res.status(403).json({ error : '권한이 없는 접근입니다.' });
+      return res.status(403).json({ 
+        isSeller: false,
+        isBlacklist: false,
+        error : '권한이 없는 접근입니다.' 
+      });
     }
   
     // 블랙리스트 여부 확인
     const user = await User.findOne({ where: userId });
     if (user && user.isBlacklist) {
       return res.send({
+        isSeller: false,
         isBlacklist: true,
         message: "신고 누적으로 인해 글을 작성할 수 없습니다",
       });
@@ -288,8 +297,13 @@ exports.getPostCreatePage = async (req, res) => {
       userId : seller.userId
     }
     
-    return res.status(200).json({ result: true, session });
-
+    return res.status(200).json({ 
+      result: true, 
+      session,
+      isSeller: false,
+      isBlacklist: false, 
+    });
+    
   }catch(err){
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -382,7 +396,6 @@ exports.getPostDetailPage = async (req, res) => {
 // 판매글 수정
 exports.updatePost = async (req, res) => {
   const t = await sequelize.transaction({
-    isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ,
   });
 
   try {
@@ -402,7 +415,7 @@ exports.updatePost = async (req, res) => {
       },
       {
         transaction: t,
-        lock: Transaction.LOCK.SHARE,
+        lock: t.LOCK.SHARE,
       }
     );
 
@@ -427,13 +440,13 @@ exports.updatePost = async (req, res) => {
     await Post.update(updatedData, {
       where: { postId },
       transaction: t,
-      lock: Transaction.LOCK.UPDATE,
+      lock: t.LOCK.UPDATE,
     });
 
     await ProductImage.destroy({
       where: { postId },
       transaction: t,
-      lock: Transaction.LOCK.UPDATE,
+      lock: t.LOCK.UPDATE,
     });
 
     if (checkPost && req.files && req.files.length > 0) {
@@ -448,7 +461,7 @@ exports.updatePost = async (req, res) => {
           },
           {
             transaction: t,
-            lock: Transaction.LOCK.UPDATE,
+            lock: t.LOCK.UPDATE,
           }
         );
       });
