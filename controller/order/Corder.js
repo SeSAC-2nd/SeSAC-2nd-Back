@@ -15,9 +15,9 @@ const {
 // 결제 페이지(주문서) 이동
 exports.getOrderPage = async (req, res) => {
   try {
-    // userId는 session에서 추출
-    // cartIds는 배열로 받기
-    const { userId, cartIds } = req.body;
+    // userId는 session에서 추출, cartIds는 배열로 받기
+    const { userId } = req.session.user;
+    const { cartIds } = req.body;
     const postInfo = await Cart.findAll({
       where: { cartId: cartIds },
       include: [
@@ -84,7 +84,8 @@ exports.getOrderPage = async (req, res) => {
 // 구매(결제) 데이터 등록
 exports.insertOrder = async (req, res) => {
   // userId는 session에서
-  const { orderData, userId } = req.body;
+  const { userId } = req.session.user;
+  const { orderData } = req.body;
 
   // 모든 주문에 공통으로 적용될 orderId를 생성
   const allOrderId = generateUniqueOrderId();
