@@ -188,7 +188,7 @@ exports.insertPost = async (req, res) => {
       productStatus,
     } = req.body;
     
-    const sellerId = req.session.User.sellerId
+    const sellerId = req.session.user.sellerId
     if(sellerId){
       return res.status(403).json({ error : '권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.' });
     }
@@ -303,7 +303,7 @@ exports.getPostCreatePage = async (req, res) => {
       isSeller: false,
       isBlacklist: false, 
     });
-    
+
   }catch(err){
     console.error(error);
     res.status(500).send("Internal Server Error");
