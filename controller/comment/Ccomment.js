@@ -1,3 +1,4 @@
+const session = require("express-session");
 const { Comment, User } = require("../../models/index");
 
 // 댓글 등록
@@ -104,6 +105,7 @@ exports.deleteComment = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
 // 대댓글 삭제
 exports.deleteCommentReply = async (req, res) => {
   try {
@@ -151,3 +153,74 @@ exports.insertReply = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
+// 댓글 목록 보여주기
+exports.getCommentList = async (req, res) =>{
+  try {
+      const { postId } = req.body;
+      const { userId } = req.session?.user || '';
+
+      const commnetList = await Comment.findAll({
+        where:{ postId },        
+          attributes: [
+            "comId",
+            "userId",
+            "comContent",
+            "isSecret",
+            "createdAt",
+            "isDeleted",
+          ],
+          include: [
+            {
+              model: User, // 댓글 작성자 정보
+              attributes: ["userId", "nickname", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
+            },
+            {
+              model: Comment, // 대댓
+              attributes: [
+                "comId",
+                "userId",
+                "comContent",
+                "isSecret",
+                "createdAt",
+                "isDeleted",
+                "parentComId",
+              ],
+              as: "replies",
+              include: [
+                {
+                  model: User, // 대댓글 작성자 정보
+                  attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+                },
+              ],
+            },
+          ],
+      });
+
+      const session = {};
+
+      if(userId){      
+          const checkSession = await User.findOne({
+          where :{ userId },      
+          include: [
+            {
+              model: Seller,
+              attributes: ["sellerId"],
+            },
+          ],
+        })
+
+        session = {
+          sellerId : checkSession.Seller?.sellerId || '',
+          userId : checkSession.userId || '',
+          nickname : checkSession.nickname || '',
+          profileImg : checkSession.profileImg || '',
+        }
+      }
+
+    res.status(200).json({ commnetList, session });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+}

@@ -298,7 +298,7 @@ exports.getPostCreatePage = async (req, res) => {
 exports.getPostDetailPage = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { userId } = req.session.user;
+    const { userId } = req.session.user || '';
 
     const getPost = await Post.findOne({
       where: { postId },
@@ -331,58 +331,25 @@ exports.getPostDetailPage = async (req, res) => {
             },
           ],
         },
-        // {
-        //   model: Comment, // 댓글
-        //   attributes: [
-        //     "comId",
-        //     "userId",
-        //     "comContent",
-        //     "isSecret",
-        //     "createdAt",
-        //     "isDeleted",
-        //   ],
-        //   include: [
-        //     {
-        //       model: User, // 댓글 작성자 정보
-        //       attributes: ["userId", "userName", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
-        //     },
-        //     {
-        //       model: Comment, // 대댓글
-        //       attributes: [
-        //         "comId",
-        //         "userId",
-        //         "comContent",
-        //         "isSecret",
-        //         "createdAt",
-        //         "isDeleted",
-        //         "parentComId",
-        //       ],
-        //       as: "replies",
-        //       include: [
-        //         {
-        //           model: User, // 대댓글 작성자 정보
-        //           attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
-        //         },
-        //       ],
-        //     },
-        //   ],
-        // },
+
       ],
     });
     if(!getPost){
       return res.status(404).json({ error : '존재하지 않는 데이터에 대한 접근입니다.' });
     }
     
-    const isInWishlist = await Wishlist.findOne({
-      where: {
-        userId,
-        postId,
-      },
-    });
-    
-    let session={};
 
-    if(userId){
+    let session={};
+    const isInWishlist = {};
+
+    if( userId !== '' ){
+      isInWishlist = await Wishlist.findOne({
+        where: {
+          userId,
+          postId,
+        },
+      });      
+      
       const checkSession = await User.findOne({
         where :{ userId },      
         include: [
@@ -400,6 +367,7 @@ exports.getPostDetailPage = async (req, res) => {
         profileImg : checkSession.profileImg || '',
       }
     }
+    
     res.json({ getPost, isInWishlist: !!isInWishlist, session });
     
   } catch (error) {
