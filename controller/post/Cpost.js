@@ -189,9 +189,11 @@ exports.insertPost = async (req, res) => {
     } = req.body;
     
     const sellerId = req.session.user.sellerId
-    if(sellerId){
+    
+    if(!sellerId){
       return res.status(403).json({ error : '권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.' });
     }
+
     const newPost = await Post.create(
       {
         sellerId,
