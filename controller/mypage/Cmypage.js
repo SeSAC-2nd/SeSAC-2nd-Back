@@ -120,17 +120,24 @@ exports.getEditUserPage = async (req, res) => {
 
     // 사용자 조회(아이디, 회원 이름, 닉네임, 전화번호, 이메일)
     const user = await User.findOne({
-      attributes: ["loginId", "userName", "nickname", "phoneNum", "email"],
+      attributes: [ "loginId", "userName", "nickname", "phoneNum", "email" ],
       where: { userId },
     });
 
+    const address = await Address.findOne({
+      where:{
+        userId,
+        isDefault : true,
+      }
+    })
+
     // 사용자가 없을 경우 처리
-    if (!user) {
+    if (!user || !address) {
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
     }
 
     // 성공 응답
-    res.status(200).json(user);
+    res.status(200).json({user, address});
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
