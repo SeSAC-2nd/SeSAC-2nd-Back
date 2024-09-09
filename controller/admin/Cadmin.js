@@ -73,7 +73,7 @@ exports.getComplaintPage = async (req, res) => {
         },
         {
           model: Post,
-          attributes: ["postTitle", "postContent"],
+          attributes: ["postId", "postTitle", "postContent"],
         },
       ],
     });
@@ -146,6 +146,14 @@ exports.getOrderLogsPage = async (req, res) => {
 exports.updateBlacklist = async (req, res) => {
   try {
     const { userId } = req.body;
+
+    // 판매자 조회
+    const seller = await Seller.findOne({
+      where: { userId },
+      attributes: ["sellerId", "userId"],
+    });
+
+    // 블랙리스트 여부 true
     const blacklist = await User.update(
       { isBlacklist: true },
       {
@@ -154,6 +162,33 @@ exports.updateBlacklist = async (req, res) => {
         },
       }
     );
+
+    // 판매중인 판매글은 삭제 처리
+    const sellingPost = await Post.update(
+      { isDeleted: true },
+      { where: { isOrdered: false, sellerId: seller.sellerId } }
+    );
+
+    // 판매 예약(배송 전)인 판매글은 구매자에게 환불 처리(중개 내역 테이블의 내역 상태 컬럼이 '환불'로 추가)
+    const beforeSelling = await Order.findAll({
+      where: { sellerId: seller.sellerId, deliveryStatus: "배송 전" },
+      attributes: ["orderId", "userId"],
+    });
+    // await OrderLogs.create(
+    //   {
+    //     managerId: 1,
+    //     orderId: createdOrder.orderId, // 생성된 주문의 orderId
+    //     userId: userId,
+    //     postId: order.postId,
+    //     orderLogPrice: order.totalPrice,
+    //     deposit: order.totalPrice,
+    //     withdraw: null,
+    //     logStatus: "입금",
+    //     createdAt: new Date(),
+    //   },
+    //   { transaction }
+    // );
+
     if (blacklist[0] !== 1) return res.send({ result: false });
     res.send({ result: true });
   } catch (error) {
