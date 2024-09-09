@@ -161,40 +161,40 @@ exports.getCommentList = async (req, res) =>{
       const userId = req.session?.user?.userId;
 
       const commnetList = await Comment.findAll({
-        where:{ postId },        
-          attributes: [
-            "comId",
-            "userId",
-            "comContent",
-            "isSecret",
-            "createdAt",
-            "isDeleted",
-          ],
-          include: [
-            {
-              model: User, // 댓글 작성자 정보
-              attributes: ["userId", "nickname", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
-            },
-            {
-              model: Comment, // 대댓
-              attributes: [
-                "comId",
-                "userId",
-                "comContent",
-                "isSecret",
-                "createdAt",
-                "isDeleted",
-                "parentComId",
-              ],
-              as: "replies",
-              include: [
-                {
-                  model: User, // 대댓글 작성자 정보
-                  attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
-                },
-              ],
-            },
-          ],
+        where:{ postId , isDeleted : false },        
+        attributes: [
+          "comId",
+          "userId",
+          "comContent",
+          "isSecret",
+          "createdAt",
+        ],
+        include: [
+          {
+            model: User, // 댓글 작성자 정보
+            attributes: ["userId", "nickname", "profileImg"], // 댓글 작성자 ID, 이름, 프로필 이미지
+          },
+          {
+            model: Comment, // 대댓
+            where: { isDeleted : false },
+            attributes: [
+              "comId",
+              "userId",
+              "comContent",
+              "isSecret",
+              "createdAt",
+              "isDeleted",
+              "parentComId",
+            ],
+            as: "replies",
+            include: [
+              {
+                model: User, // 대댓글 작성자 정보
+                attributes: ["userId", "userName", "profileImg"], // 대댓글 작성자 ID, 이름, 프로필 이미지
+              },
+            ],
+          },
+        ],
       });
 
       const session = {};
