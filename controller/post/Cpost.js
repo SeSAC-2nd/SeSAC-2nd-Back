@@ -187,11 +187,15 @@ exports.insertPost = async (req, res) => {
       productType,
       productStatus,
     } = req.body;
-    
-    const sellerId = req.session.user.sellerId
-    
-    if(!sellerId){
-      return res.status(403).json({ error : '권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.' });
+
+    const sellerId = req.session.user.sellerId;
+
+    if (!sellerId) {
+      return res
+        .status(403)
+        .json({
+          error: "권한이 없는 접근입니다. - 판매자 정보가 등록되지 않았습니다.",
+        });
     }
 
     const newPost = await Post.create(
@@ -203,7 +207,7 @@ exports.insertPost = async (req, res) => {
         categoryId,
         productType,
         productStatus,
-        sellStatus: "판매중",
+        sellStatus: "판매 중",
       },
       {
         transaction: t,
@@ -261,8 +265,8 @@ exports.insertPost = async (req, res) => {
 // 판매글 작성 페이지 이동
 exports.getPostCreatePage = async (req, res) => {
   // 판매자 정보 등록 확인
-  // userId는 session 에서 추출  
-  try{
+  // userId는 session 에서 추출
+  try {
     const { userId } = req.session.user;
     const seller = await Seller.findOne({ where: userId });
     let isSeller = false;
@@ -275,18 +279,18 @@ exports.getPostCreatePage = async (req, res) => {
         error:
           "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
       });
-    }else{
+    } else {
       isSeller = true;
     }
 
-    if(seller.userId !== req.session?.user.userId){
-      return res.status(403).json({ 
+    if (seller.userId !== req.session?.user.userId) {
+      return res.status(403).json({
         isSeller,
         isBlacklist,
-        error : '권한이 없는 접근입니다.' 
+        error: "권한이 없는 접근입니다.",
       });
     }
-  
+
     // 블랙리스트 여부 확인
     const user = await User.findOne({ where: userId });
     if (user && user.isBlacklist) {
@@ -296,24 +300,22 @@ exports.getPostCreatePage = async (req, res) => {
         isBlacklist,
         message: "신고 누적으로 인해 글을 작성할 수 없습니다",
       });
-    }    
-    const session = {
-      sellerId : seller.sellerId,
-      userId : seller.userId
     }
-    
-    return res.status(200).json({ 
-      result: true, 
+    const session = {
+      sellerId: seller.sellerId,
+      userId: seller.userId,
+    };
+
+    return res.status(200).json({
+      result: true,
       session,
       isSeller,
-      isBlacklist, 
+      isBlacklist,
     });
-
-  }catch(err){
+  } catch (err) {
     console.error(error);
     res.status(500).send("Internal Server Error");
   }
-
 };
 
 // 판매글 상세 페이지 이동
@@ -353,45 +355,44 @@ exports.getPostDetailPage = async (req, res) => {
             },
           ],
         },
-
       ],
     });
-    if(!getPost){
-      return res.status(404).json({ error : '존재하지 않는 데이터에 대한 접근입니다.' });
+    if (!getPost) {
+      return res
+        .status(404)
+        .json({ error: "존재하지 않는 데이터에 대한 접근입니다." });
     }
-    
 
-    let session={};
+    let session = {};
     let isInWishlist = null;
 
-    if( userId ){
+    if (userId) {
       isInWishlist = await Wishlist.findOne({
         where: {
           userId,
           postId,
         },
-      });      
-      
+      });
+
       const checkSession = await User.findOne({
-        where :{ userId },      
+        where: { userId },
         include: [
           {
             model: Seller,
             attributes: ["sellerId"],
           },
         ],
-      })
-  
+      });
+
       session = {
-        sellerId : checkSession.Seller?.sellerId || null,
-        userId : checkSession.userId,
-        nickname : checkSession.nickname,
-        profileImg : checkSession.profileImg || '',
-      }
+        sellerId: checkSession.Seller?.sellerId || null,
+        userId: checkSession.userId,
+        nickname: checkSession.nickname,
+        profileImg: checkSession.profileImg || "",
+      };
     }
-    
+
     res.json({ getPost, isInWishlist: !!isInWishlist, session });
-    
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -400,8 +401,7 @@ exports.getPostDetailPage = async (req, res) => {
 
 // 판매글 수정
 exports.updatePost = async (req, res) => {
-  const t = await sequelize.transaction({
-  });
+  const t = await sequelize.transaction({});
 
   try {
     const { postId } = req.params;
@@ -439,7 +439,7 @@ exports.updatePost = async (req, res) => {
       categoryId: categoryId || checkPost.categoryId,
       productType: productType || checkPost.productType,
       productStatus: productStatus || checkPost.productStatus,
-      sellStatus: "판매중",
+      sellStatus: "판매 중",
     };
 
     await Post.update(updatedData, {
@@ -496,8 +496,8 @@ exports.updatePost = async (req, res) => {
 exports.getPostUpdatePage = async (req, res) => {
   try {
     const { postId } = req.params;
-    console.log('postId >>>>', postId );
-    
+    console.log("postId >>>>", postId);
+
     const post = await Post.findOne({
       where: { postId },
       attributes: [
@@ -518,25 +518,24 @@ exports.getPostUpdatePage = async (req, res) => {
         },
       ],
     });
-    
+
     const checkSeller = await Seller.findOne({
-      where: { sellerId : post.sellerId },
-      attributes:[ 'userId'],
-    })
-    console.log('req.session.user.userId >>>>', req.session.user.userId );
-    console.log('checkSeller.userId >>>>', checkSeller.userId);
-    
-    if( req.session.user.userId !== checkSeller.userId){
-      return res.status(403).json({ error : '권한이 없는 접근입니다.' });
+      where: { sellerId: post.sellerId },
+      attributes: ["userId"],
+    });
+    console.log("req.session.user.userId >>>>", req.session.user.userId);
+    console.log("checkSeller.userId >>>>", checkSeller.userId);
+
+    if (req.session.user.userId !== checkSeller.userId) {
+      return res.status(403).json({ error: "권한이 없는 접근입니다." });
     }
 
-    const session ={
-      sellerId : post.sellerId,
-      userId : checkSeller.userId
-    }
+    const session = {
+      sellerId: post.sellerId,
+      userId: checkSeller.userId,
+    };
 
     res.status(200).json({ post, session });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
