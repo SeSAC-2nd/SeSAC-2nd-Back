@@ -43,6 +43,7 @@ exports.getSellerPage = async (req, res) => {
         Seller.sellerId, 
         COUNT(Complaint.complaintId) AS complaintCount, 
         User.userId, 
+        User.loginId,
         User.isBlacklist
       FROM Seller AS Seller 
       INNER JOIN User AS User ON Seller.userId = User.userId AND User.isBlacklist = false 
