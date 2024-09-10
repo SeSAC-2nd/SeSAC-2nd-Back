@@ -1,6 +1,7 @@
 const aws = require("aws-sdk");
 const multers3 = require("multer-s3");
 const multer = require("multer");
+const path = require("path");
 const dotenv = require("dotenv");
 
 dotenv.config();
@@ -28,13 +29,13 @@ const uploadSingle = multer({
     acl: "public-read",
     contentType: multers3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, `profile/${Date.now().toString()}-${file.originalname}`);
+      // 파일의 확장자 추출
+      const ext = path.extname(file.originalname);
+      // 확장자가 포함된 파일 이름 생성
+      const fileName = `profile/${Date.now().toString()}-${path.basename(file.originalname, ext).slice(0,2)}${ext}`;
+      cb(null, fileName);
     }
   }),
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
 });
 
 const uploadMul = multer({
@@ -44,7 +45,7 @@ const uploadMul = multer({
     acl: "public-read",
     contentType: multers3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, `product/${Date.now().toString()}-${file.originalname}`);
+      cb(null, `product/${Date.now().toString()}-${file.originalname.slice(0.2)}`);
     }
   }),
   fileFilter: fileFilter,
