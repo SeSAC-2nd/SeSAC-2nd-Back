@@ -12,7 +12,6 @@ const {
 // 전체회원조회 페이지 이동
 exports.getAllUserPage = async (req, res) => {
   try {
-    const userCount = await User.count();
     const allUser = await User.findAll({
       attributes: ["userId", "loginId", "nickname"],
       where: { isWithdrawn: false, isBlacklist: false },
@@ -27,7 +26,7 @@ exports.getAllUserPage = async (req, res) => {
         },
       ],
     });
-    res.json({ allUser, userCount });
+    res.json(allUser);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
