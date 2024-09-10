@@ -120,7 +120,14 @@ exports.getEditUserPage = async (req, res) => {
 
     // 사용자 조회(아이디, 회원 이름, 닉네임, 전화번호, 이메일)
     const user = await User.findOne({
-      attributes: ["loginId", "userName", "nickname", "phoneNum", "email"],
+      attributes: [
+        "loginId",
+        "userName",
+        "nickname",
+        "phoneNum",
+        "email",
+        "profileImg",
+      ],
       where: { userId },
     });
 
