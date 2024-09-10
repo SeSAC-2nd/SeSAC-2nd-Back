@@ -11,6 +11,7 @@ exports.getMainPage = async (req, res) => {
   try {
     const newPostList = await Post.findAll({
       attributes: ["postId", "postTitle", "productPrice", "createdAt"],
+      where: { isDeleted: false },
       include: [
         {
           model: Category,
@@ -43,6 +44,7 @@ exports.getMainPage = async (req, res) => {
             ON Post.postId = Product_Images.postId
             AND Product_Images.isThumbnail = true
         LEFT JOIN Wishlist ON Post.postId = Wishlist.postId
+        WHERE Post.isDeleted = 0
         GROUP BY
             Post.postId,
             Post.postTitle,
