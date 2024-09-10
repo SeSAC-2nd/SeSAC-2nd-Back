@@ -12,7 +12,6 @@ const {
 // 전체회원조회 페이지 이동
 exports.getAllUserPage = async (req, res) => {
   try {
-    const userCount = await User.count();
     const allUser = await User.findAll({
       attributes: ["userId", "loginId", "nickname"],
       where: { isWithdrawn: false, isBlacklist: false },
@@ -27,7 +26,7 @@ exports.getAllUserPage = async (req, res) => {
         },
       ],
     });
-    res.json({ allUser, userCount });
+    res.json(allUser);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -73,7 +72,7 @@ exports.getComplaintPage = async (req, res) => {
         },
         {
           model: Post,
-          attributes: ["postTitle", "postContent"],
+          attributes: ["postId", "postTitle", "postContent"],
         },
       ],
     });
@@ -146,6 +145,14 @@ exports.getOrderLogsPage = async (req, res) => {
 exports.updateBlacklist = async (req, res) => {
   try {
     const { userId } = req.body;
+
+    // 판매자 조회
+    const seller = await Seller.findOne({
+      where: { userId },
+      attributes: ["sellerId", "userId"],
+    });
+
+    // 블랙리스트 여부 true
     const blacklist = await User.update(
       { isBlacklist: true },
       {
@@ -154,6 +161,55 @@ exports.updateBlacklist = async (req, res) => {
         },
       }
     );
+
+    // 판매중인 판매글은 삭제 처리
+    const sellingPost = await Post.update(
+      { isDeleted: true },
+      { where: { isOrdered: false, sellerId: seller.sellerId } }
+    );
+
+    // 판매 예약(배송 전)인 판매글은 구매자에게 환불 처리(중개 내역 테이블의 내역 상태 컬럼이 '환불'로 추가)
+    const beforeSelling = await Order.findAll({
+      where: { sellerId: seller.sellerId, deliveryStatus: "배송 전" },
+      attributes: ["orderId", "userId", "postId"],
+    });
+
+    if (beforeSelling.length > 0) {
+      for (const order of beforeSelling) {
+        const findOrderLog = await OrderLogs.findOne({
+          where: { orderId: order.orderId },
+          attributes: ["orderLogPrice"],
+          limit: 1,
+        });
+
+        if (findOrderLog) {
+          // 중개 내역에 환불 추가
+          await OrderLogs.create({
+            managerId: 1,
+            orderId: order.orderId,
+            userId: order.userId,
+            postId: order.postId,
+            orderLogPrice: findOrderLog.orderLogPrice,
+            deposit: null,
+            withdraw: findOrderLog.orderLogPrice,
+            logStatus: "환불",
+            createdAt: new Date(),
+          });
+
+          const user = await User.findOne({
+            where: { userId: order.userId },
+            attributes: ["balance"],
+          });
+
+          // 환불 금액 구매자 잔고에 환불
+          await User.update(
+            { balance: user.balance + findOrderLog.orderLogPrice },
+            { where: { userId: order.userId } }
+          );
+        }
+      }
+    }
+
     if (blacklist[0] !== 1) return res.send({ result: false });
     res.send({ result: true });
   } catch (error) {

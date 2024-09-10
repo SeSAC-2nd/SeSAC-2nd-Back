@@ -270,23 +270,16 @@ exports.getPostCreatePage = async (req, res) => {
     let isSeller = false;
     let isBlacklist = false;
 
+    // 판매자 정보 없으면
     if (!seller) {
       return res.send({
-        isSeller,
-        isBlacklist,
-        error:
+        isSeller, // false
+        isBlacklist, //false
+        message:
           "판매하려면 판매자 등록이 필요합니다. 판매자 등록을 하시겠습니까?",
       });
     } else {
       isSeller = true;
-    }
-
-    if (seller.userId !== req.session?.user.userId) {
-      return res.status(403).json({
-        isSeller,
-        isBlacklist,
-        error: "권한이 없는 접근입니다.",
-      });
     }
 
     // 블랙리스트 여부 확인
@@ -294,21 +287,17 @@ exports.getPostCreatePage = async (req, res) => {
     if (user && user.isBlacklist) {
       isBlacklist = true;
       return res.send({
-        isSeller,
-        isBlacklist,
+        isSeller, // false
+        isBlacklist, //true
         message: "신고 누적으로 인해 글을 작성할 수 없습니다",
       });
     }
-    const session = {
-      sellerId: seller.sellerId,
-      userId: seller.userId,
-    };
 
+    // 판매자 등록 되어있거나 블랙리스트가 아니면
     return res.status(200).json({
-      result: true,
-      session,
-      isSeller,
-      isBlacklist,
+      isSeller, // true
+      isBlacklist, // false
+      message: "성공적인 응답",
     });
   } catch (err) {
     console.error(error);
