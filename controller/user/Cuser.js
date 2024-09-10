@@ -1,3 +1,4 @@
+const { where } = require("sequelize");
 const {
   User,
   Address,
@@ -335,7 +336,7 @@ exports.checkPassword = async (req, res) => {
 
     if (isPasswordValid) {
       // 비밀번호가 일치한 경우
-      return res.status(200).json({ message: "비밀번호가 일치합니다." });
+      return res.status(200).json({ message: "비밀번호가 일치합니다.", flag : "" });
     } else {
       // 비밀번호가 일치하지 않은 경우
       return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
@@ -350,18 +351,34 @@ exports.checkPassword = async (req, res) => {
 // 이미지 추가해야 함
 exports.updateUser = async (req, res) => {
   try {
+    console.log( '정보 수정 updateUser 도착 ');
+    console.log(req.body);
+    let msg ='';
+    
     const { userId } = req.session.user;
-    const { userPw, nickname, email } = req.body;
-
-    // userId가 세션에 없을 경우
-    if (!userId) {
-      return res.status(400).json({ error: "사용자 ID가 필요합니다." });
-    }
 
     // 사용자 조회
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
+    }
+    let nickname = req.body.nickname || user.nickname;
+    let userName = req.body.userName || user.userName;
+    let userPw = req.body.userPw || undefined;
+    let phoneNum = req.body.phoneNum || user.phoneNum;
+    let email = req.body.email || user.email;
+    let zipCode = req.body.zipCode || user.zipCode;
+    let address = req.body.address || user.address;
+    let detailedAddress = req.body.detailedAddress || user.detailedAddress;
+
+    const checkNick = await User.findOne({
+      where:{
+        nickname : nickname,
+      }
+    });
+
+    if( checkNick && ( checkNick.userId !== userId )){
+      return res.status(201).json({ error : '이미 사용중인 닉네임입니다.' });
     }
 
     // 새 비밀번호가 제공된 경우에만 기존 비밀번호와 비교
@@ -369,22 +386,27 @@ exports.updateUser = async (req, res) => {
     if (userPw) {
       const isSamePassword = comparePw(userPw, user.userPw);
       if (isSamePassword) {
-        return res
-          .status(409)
-          .json({ error: "기존 비밀번호와 새 비밀번호가 동일합니다." });
+        msg = '기존의 비밀번호와 동일합니다.'
       }
-
       // 비밀번호 해싱
       updatedData.userPw = hashPw(userPw);
+    }else{
+      updatedData.userPw = user.userPw;
     }
 
     // 닉네임과 이메일도 업데이트 데이터에 추가
+    if (userName) updatedData.userName = userName;
     if (nickname) updatedData.nickname = nickname;
     if (email) updatedData.email = email;
-    if (req.file) updatedData.sellerImg = req.file.location;
-
+    if (req.file) updatedData.profileImg = req.file.location;
+    if (phoneNum) updatedData.phoneNum = phoneNum;
+    if (zipCode) updatedData.zipCode = zipCode;
+    if (address) updatedData.address = address;
+    if (detailedAddress) updatedData.detailedAddress = detailedAddress;
+    
     // 데이터 업데이트
-    await user.update(updatedData);
+    await user.update(updatedData,{ where: { userId }});
+    await Address.update(updatedData,{ where: { userId, isDefault : true }});
 
     // 성공 응답 시 userPw 제외
     const updatedUser = { ...user.toJSON() };
@@ -407,7 +429,7 @@ exports.updateUser = async (req, res) => {
       }
       res.status(200).json({
         message: "사용자 정보가 성공적으로 업데이트되었습니다.",
-        updatedUser,
+        msg
       });
     });
   } catch (error) {
