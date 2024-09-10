@@ -3,9 +3,7 @@ const { Wishlist } = require("../../models/index");
 // 찜 등록
 exports.insertWishlist = async (req, res) => {
   try {
-    // userId는 session에서
-    const userId = req.session?.user?.userId;
-    const { postId } = req.body;
+    const { postId, userId } = req.body;
     const newWishlist = await Wishlist.create({
       userId,
       postId,
