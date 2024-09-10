@@ -46,7 +46,7 @@ exports.getMyPage = async (req, res) => {
     // [구매 내역] 구매 내역 조회(판매글 제목, 상품 가격, 이미지 파일명)
     if (postIds.length > 0) {
       purchasedPosts = await Post.findAll({
-        attributes: ["postId", "postTitle", "productPrice"],
+        attributes: ["postId", "postTitle", "productPrice", "sellStatus"],
         where: { postId: postIds },
         include: [
           {
@@ -75,7 +75,7 @@ exports.getMyPage = async (req, res) => {
       const sellerId = seller.sellerId;
 
       sellerPosts = await Post.findAll({
-        attributes: ["postId", "postTitle", "productPrice"],
+        attributes: ["postId", "postTitle", "productPrice", "sellStatus"],
         where: { sellerId },
         include: [
           {
@@ -120,7 +120,14 @@ exports.getEditUserPage = async (req, res) => {
 
     // 사용자 조회(아이디, 회원 이름, 닉네임, 전화번호, 이메일)
     const user = await User.findOne({
-      attributes: ["loginId", "userName", "nickname", "phoneNum", "email"],
+      attributes: [
+        "loginId",
+        "userName",
+        "nickname",
+        "phoneNum",
+        "email",
+        "profileImg",
+      ],
       where: { userId },
     });
 
