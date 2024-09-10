@@ -120,16 +120,16 @@ exports.getEditUserPage = async (req, res) => {
 
     // 사용자 조회(아이디, 회원 이름, 닉네임, 전화번호, 이메일)
     const user = await User.findOne({
-      attributes: [ "loginId", "userName", "nickname", "phoneNum", "email" ],
+      attributes: ["loginId", "userName", "nickname", "phoneNum", "email"],
       where: { userId },
     });
 
     const address = await Address.findOne({
-      where:{
+      where: {
         userId,
-        isDefault : true,
-      }
-    })
+        isDefault: true,
+      },
+    });
 
     // 사용자가 없을 경우 처리
     if (!user || !address) {
@@ -137,7 +137,7 @@ exports.getEditUserPage = async (req, res) => {
     }
 
     // 성공 응답
-    res.status(200).json({user, address});
+    res.status(200).json({ user, address });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -146,16 +146,6 @@ exports.getEditUserPage = async (req, res) => {
 
 // 회원 탈퇴 페이지 이동
 // exports.getDeleteUserPage = async (req, res) => {
-//   try {
-
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send('Internal Server Error');
-//   }
-// }
-
-// 판매자 등록 페이지 이동
-// exports.getCreateSellerPage = async (req, res) => {
 //   try {
 
 //   } catch (error) {
@@ -361,6 +351,12 @@ exports.getOrderHistoryPage = async (req, res) => {
             },
           ],
         },
+        {
+          model: OrderLogs,
+          attributes: ["logStatus"],
+          where: { logStatus: "환불" },
+          required: false, // 환불 로그가 없을 수도 있으므로 false로 설정
+        },
       ],
     });
 
@@ -383,6 +379,16 @@ exports.getOrderHistoryPage = async (req, res) => {
         );
       }
     }
+
+    // orderHistory에 logStatus가 '환불'인 경우만 포함하고, 그렇지 않으면 null로 설정
+    orderHistory = orderHistory.map((order) => {
+      const refundLog =
+        order.Order_Logs.length > 0 ? order.Order_Logs[0].logStatus : null;
+      return {
+        ...order.toJSON(),
+        logStatus: refundLog,
+      };
+    });
 
     return res.status(200).json({
       orderHistory,

@@ -17,7 +17,7 @@ exports.getMainPage = async (req, res) => {
         "createdAt",
         "sellStatus",
       ],
-      where: { isDeleted: false },
+      where: { isDeleted: false, sellStatus: "판매 중" },
       include: [
         {
           model: Category,
@@ -41,7 +41,7 @@ exports.getMainPage = async (req, res) => {
         "createdAt",
         "sellStatus",
       ],
-      where: { isDeleted: false },
+      where: { isDeleted: false, sellStatus: "판매 중" },
       include: [
         {
           model: Category,
