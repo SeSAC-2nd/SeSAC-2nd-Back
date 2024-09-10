@@ -8,37 +8,49 @@ const userModel = (sequelize, DataTypes) => {
         allowNull: false,
         autoIncrement: true,
       },
-      userName: {
-        type: DataTypes.STRING(10),
-        allowNull: false,
-      },
       loginId: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(15),
         allowNull: false,
       },
       userPw: {
         type: DataTypes.STRING(100),
         allowNull: false,
       },
+      nickname: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+      },
+      userName: {
+        type: DataTypes.STRING(8),
+        allowNull: false,
+      },
+      phoneNum: {
+        type: DataTypes.STRING(15),
+        allowNull: false,
+        unique: true,
+      },
       email: {
         type: DataTypes.STRING(30),
-        allowNull: true,
-      },
-      address: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
+        allowNull: false,
+        unique: true,
       },
       profileImg: {
         type: DataTypes.STRING(100),
         allowNull: true,
       },
-      userNick: {
-        type: DataTypes.STRING(10),
+      balance: {
+        type: DataTypes.INTEGER,
         allowNull: false,
       },
-      birthday: {
-        type: DataTypes.DATEONLY,
-        allowNull: true,
+      isBlacklist: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      isWithdrawn: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
     },
     {
