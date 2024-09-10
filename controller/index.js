@@ -10,7 +10,13 @@ const {
 exports.getMainPage = async (req, res) => {
   try {
     const newPostList = await Post.findAll({
-      attributes: ["postId", "postTitle", "productPrice", "createdAt"],
+      attributes: [
+        "postId",
+        "postTitle",
+        "productPrice",
+        "createdAt",
+        "sellStatus",
+      ],
       where: { isDeleted: false },
       include: [
         {
@@ -28,7 +34,13 @@ exports.getMainPage = async (req, res) => {
     });
 
     const lowPriceList = await Post.findAll({
-      attributes: ["postId", "postTitle", "productPrice", "createdAt"],
+      attributes: [
+        "postId",
+        "postTitle",
+        "productPrice",
+        "createdAt",
+        "sellStatus",
+      ],
       where: { isDeleted: false },
       include: [
         {
