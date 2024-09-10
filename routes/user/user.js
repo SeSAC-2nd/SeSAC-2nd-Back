@@ -22,7 +22,7 @@ router.post("/checkPassword", controller.checkPassword);
 router.get("/logout", controller.userLogout);
 
 // 회원 정보 수정
-router.patch("/:userId", uploadSingle.single(''), logS3UploadResult, controller.updateUser);
+router.patch("/:userId", uploadSingle.single('sellerImg'), logS3UploadResult, controller.updateUser);
 
 // 회원 조회
 router.get("/:userId", controller.getUser);
