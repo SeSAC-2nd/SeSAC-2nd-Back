@@ -4,8 +4,8 @@ const { Address } = require("../../models/index");
 exports.insertAddress = async (req, res) => {
   try {
     // userId는 session에서
+    const userId = req.session?.user?.userId;
     const {
-      userId,
       addName,
       zipCode,
       address,
@@ -49,7 +49,7 @@ exports.insertAddress = async (req, res) => {
 exports.getAddressList = async (req, res) => {
   try {
     // userId는 session에서
-    const { userId } = req.body;
+    const userId = req.session?.user?.userId;
     const addressList = await Address.findAll({
       where: { userId },
       attributes: [
@@ -73,7 +73,6 @@ exports.getAddressList = async (req, res) => {
 // 배송지 조회
 exports.getAddress = async (req, res) => {
   try {
-    // userId는 session에서
     const { addId } = req.params;
     const address = await Address.findOne({
       where: { addId },

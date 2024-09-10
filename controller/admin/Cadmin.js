@@ -110,7 +110,13 @@ exports.getBlacklistPage = async (req, res) => {
 exports.getOrderLogsPage = async (req, res) => {
   try {
     const orderLogList = await OrderLogs.findAll({
-      attributes: ["orderLogId", "deposit", "withdraw", "createdAt"],
+      attributes: [
+        "orderLogId",
+        "deposit",
+        "withdraw",
+        "createdAt",
+        "logStatus",
+      ],
       include: [
         {
           model: Order,
