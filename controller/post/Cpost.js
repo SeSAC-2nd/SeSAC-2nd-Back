@@ -355,6 +355,7 @@ exports.getPostDetailPage = async (req, res) => {
 
     if (userId) {
       isInWishlist = await Wishlist.findOne({
+        attributes: ["wishlistId"],
         where: {
           userId,
           postId,
@@ -379,7 +380,7 @@ exports.getPostDetailPage = async (req, res) => {
       };
     }
 
-    res.json({ getPost, isInWishlist: !!isInWishlist, session });
+    res.json({ getPost, isInWishlist, session });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -435,7 +436,7 @@ exports.updatePost = async (req, res) => {
       lock: t.LOCK.UPDATE,
     });
 
-    if (checkPost && req.files && req.files.length > 0) {    
+    if (checkPost && req.files && req.files.length > 0) {
       await ProductImage.destroy({
         where: { postId },
         transaction: t,
@@ -458,7 +459,7 @@ exports.updatePost = async (req, res) => {
       });
       await Promise.all(imagePromises);
     }
-    
+
     await t.commit();
 
     return res.status(200).json({

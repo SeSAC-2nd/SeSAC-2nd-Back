@@ -4,7 +4,8 @@ const { Wishlist } = require("../../models/index");
 exports.insertWishlist = async (req, res) => {
   try {
     // userId는 session에서
-    const { userId, postId } = req.body;
+    const userId = req.session?.user?.userId;
+    const { postId } = req.body;
     const newWishlist = await Wishlist.create({
       userId,
       postId,
