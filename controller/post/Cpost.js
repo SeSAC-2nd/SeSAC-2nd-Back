@@ -473,11 +473,10 @@ exports.updatePost = async (req, res) => {
   }
 };
 
-// 판매글 수정 페애지 이동
+// 판매글 수정 페이지 이동
 exports.getPostUpdatePage = async (req, res) => {
   try {
     const { postId } = req.params;
-    console.log("postId >>>>", postId);
 
     const post = await Post.findOne({
       where: { postId },
@@ -504,8 +503,6 @@ exports.getPostUpdatePage = async (req, res) => {
       where: { sellerId: post.sellerId },
       attributes: ["userId"],
     });
-    console.log("req.session.user.userId >>>>", req.session.user.userId);
-    console.log("checkSeller.userId >>>>", checkSeller.userId);
 
     if (req.session.user.userId !== checkSeller.userId) {
       return res.status(403).json({ error: "권한이 없는 접근입니다." });

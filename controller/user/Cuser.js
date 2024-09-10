@@ -336,7 +336,9 @@ exports.checkPassword = async (req, res) => {
 
     if (isPasswordValid) {
       // 비밀번호가 일치한 경우
-      return res.status(200).json({ message: "비밀번호가 일치합니다.", flag : "" });
+      return res
+        .status(200)
+        .json({ message: "비밀번호가 일치합니다.", flag: "" });
     } else {
       // 비밀번호가 일치하지 않은 경우
       return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
@@ -351,10 +353,8 @@ exports.checkPassword = async (req, res) => {
 // 이미지 추가해야 함
 exports.updateUser = async (req, res) => {
   try {
-    console.log( '정보 수정 updateUser 도착 ');
-    console.log(req.body);
-    let msg ='';
-    
+    let msg = "";
+
     const { userId } = req.session.user;
 
     // 사용자 조회
@@ -372,13 +372,13 @@ exports.updateUser = async (req, res) => {
     let detailedAddress = req.body.detailedAddress || user.detailedAddress;
 
     const checkNick = await User.findOne({
-      where:{
-        nickname : nickname,
-      }
+      where: {
+        nickname: nickname,
+      },
     });
 
-    if( checkNick && ( checkNick.userId !== userId )){
-      return res.status(201).json({ error : '이미 사용중인 닉네임입니다.' });
+    if (checkNick && checkNick.userId !== userId) {
+      return res.status(201).json({ error: "이미 사용중인 닉네임입니다." });
     }
 
     // 새 비밀번호가 제공된 경우에만 기존 비밀번호와 비교
@@ -386,11 +386,11 @@ exports.updateUser = async (req, res) => {
     if (userPw) {
       const isSamePassword = comparePw(userPw, user.userPw);
       if (isSamePassword) {
-        msg = '기존의 비밀번호와 동일합니다.'
+        msg = "기존의 비밀번호와 동일합니다.";
       }
       // 비밀번호 해싱
       updatedData.userPw = hashPw(userPw);
-    }else{
+    } else {
       updatedData.userPw = user.userPw;
     }
 
@@ -403,10 +403,10 @@ exports.updateUser = async (req, res) => {
     if (zipCode) updatedData.zipCode = zipCode;
     if (address) updatedData.address = address;
     if (detailedAddress) updatedData.detailedAddress = detailedAddress;
-    
+
     // 데이터 업데이트
-    await user.update(updatedData,{ where: { userId }});
-    await Address.update(updatedData,{ where: { userId, isDefault : true }});
+    await user.update(updatedData, { where: { userId } });
+    await Address.update(updatedData, { where: { userId, isDefault: true } });
 
     // 성공 응답 시 userPw 제외
     const updatedUser = { ...user.toJSON() };
@@ -429,7 +429,7 @@ exports.updateUser = async (req, res) => {
       }
       res.status(200).json({
         message: "사용자 정보가 성공적으로 업데이트되었습니다.",
-        msg
+        msg,
       });
     });
   } catch (error) {
@@ -440,7 +440,6 @@ exports.updateUser = async (req, res) => {
 
 // 회원 조회
 exports.getUser = async (req, res) => {
-  console.log("req >>>>> ", req.session);
   try {
     const { userId } = req.session.user;
 
@@ -481,7 +480,6 @@ exports.deleteUser = async (req, res) => {
 
     // 사용자의 판매자 정보 조회
     const seller = await Seller.findOne({ where: { userId } });
-    console.log(seller);
 
     // 판매자가 존재하면 판매글 조회
     if (seller) {
@@ -531,7 +529,6 @@ exports.deleteUser = async (req, res) => {
 
 // 로그아웃
 exports.userLogout = async (req, res) => {
-  console.log(req.session);
   try {
     // 세션 삭제
     req.session.destroy((err) => {
