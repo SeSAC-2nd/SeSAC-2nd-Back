@@ -5,14 +5,14 @@ const sessionMiddleware = require("./middlewares/session");
 const { sequelize } = require("./models");
 const loggingMiddleware = require("./middlewares/winston");
 
-require("dotenv/config");
-const config = require("./config/key");
+const path = require("path");
 
 // CORS 설정
 const corsOptions = {
   origin: "http://localhost:3000", // React 앱의 URL
   credentials: true,
   // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+
 };
 
 // CORS 미들웨어 사용, router 위에다가 선언
@@ -21,6 +21,7 @@ app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(loggingMiddleware);
+app.use(express.static(path.join(__dirname, 'build')));
 
 const indexRouter = require("./routes/index");
 const cartRouter = require("./routes/cart/cart");
@@ -35,8 +36,6 @@ const sellerRouter = require("./routes/seller/seller");
 const commentRouter = require("./routes/comment/comment");
 const wishlistRouter = require("./routes/wishlist/wishlist");
 const addressRouter = require("./routes/address/address");
-
-const path = require("path");
 const dotenv = require("dotenv");
 
 // dotenv 모듈을 이용해 .env 파일의 환경 변수를 불러옴
@@ -44,6 +43,7 @@ dotenv.config({
   // 기본 .env 파일 로드
   path: path.resolve(__dirname, ".env"),
 });
+
 
 const port = process.env.PORT || 5000;
 
@@ -63,11 +63,11 @@ app.use("/wishlist", wishlistRouter);
 app.use("/addresses", addressRouter);
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../build/build", "index.html"));
+  res.sendFile(path.join(__dirname, "/build", "index.html"));
 });
 
-app.get("*", (req, res) => {
-  res.send("404 Not Found");
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 // 테이블을 생성하고 처음에만 force : true 로 실행하고 그 뒤로는 false로 변경하고 실행

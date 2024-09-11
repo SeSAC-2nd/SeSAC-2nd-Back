@@ -7,3 +7,5 @@
 **/.DS_Store
 **/._.DS_Store
 .vercel
+**/build**
+**/logs
