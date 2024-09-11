@@ -139,6 +139,7 @@ exports.getOrderLogsPage = async (req, res) => {
           ],
         },
       ],
+      order: [["createdAt", "DESC"]],
     });
     res.json(orderLogList);
   } catch (error) {
