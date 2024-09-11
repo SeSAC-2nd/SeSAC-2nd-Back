@@ -1,0 +1,9 @@
+**/node_modules/
+.env
+*.sql
+
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
+.vercel
