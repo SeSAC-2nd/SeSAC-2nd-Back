@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 const sessionMiddleware = require("./middlewares/session");
 const { sequelize } = require("./models");
+const loggingMiddleware = require("./middlewares/winston");
 
 // CORS 설정
 const corsOptions = {
@@ -16,6 +17,7 @@ app.use(sessionMiddleware);
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(loggingMiddleware);
 
 const indexRouter = require("./routes/index");
 const cartRouter = require("./routes/cart/cart");
