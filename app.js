@@ -48,19 +48,19 @@ dotenv.config({
 const port = process.env.PORT || 5000;
 
 // router 설정
-app.use("/main", indexRouter);
-app.use("/cart", cartRouter);
-app.use("/user", userRouter);
-app.use("/posts", postRouter);
-app.use("/order", orderPageRouter);
-app.use("/orders", orderRouter);
-app.use("/complaints", complaintRouter);
-app.use("/admin", adminRouter);
-app.use("/mypage", mypageRouter);
-app.use("/sellers", sellerRouter);
-app.use("/comments", commentRouter);
-app.use("/wishlist", wishlistRouter);
-app.use("/addresses", addressRouter);
+app.use("/api/main", indexRouter);
+app.use("/api/cart", cartRouter);
+app.use("/api/user", userRouter);
+app.use("/api/posts", postRouter);
+app.use("/api/order", orderPageRouter);
+app.use("/api/orders", orderRouter);
+app.use("/api/complaints", complaintRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/mypage", mypageRouter);
+app.use("/api/sellers", sellerRouter);
+app.use("/api/comments", commentRouter);
+app.use("/api/wishlist", wishlistRouter);
+app.use("/api/addresses", addressRouter);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "/build", "index.html"));
