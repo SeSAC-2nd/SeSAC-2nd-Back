@@ -97,6 +97,7 @@ exports.getAddress = async (req, res) => {
 exports.updateAddress = async (req, res) => {
   try {
     const { addId } = req.params;
+    const userId = req.session?.user?.userId;
     const {
       addName,
       zipCode,
@@ -106,6 +107,19 @@ exports.updateAddress = async (req, res) => {
       receiver,
       phoneNum,
     } = req.body;
+
+    // 만약 isDefault가 true로 설정되었으면, 기존 기본 주소를 false로 업데이트
+    if (isDefault) {
+      await Address.update(
+        { isDefault: false }, // 기존 기본 주소의 isDefault를 false로 설정
+        {
+          where: {
+            userId,
+            isDefault: true, // 해당 유저의 기본 주소만 업데이트
+          },
+        }
+      );
+    }
     const [updateAddress] = await Address.update(
       {
         addName,
