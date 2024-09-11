@@ -312,7 +312,7 @@ exports.getPostDetailPage = async (req, res) => {
     const userId = req.session?.user?.userId;
 
     const getPost = await Post.findOne({
-      where: { postId },
+      where: { postId, isDeleted : false },
       attributes: [
         "postId",
         "postTitle",
@@ -347,7 +347,7 @@ exports.getPostDetailPage = async (req, res) => {
     if (!getPost) {
       return res
         .status(404)
-        .json({ error: "존재하지 않는 데이터에 대한 접근입니다." });
+        .json({ error: "존재하지 않는 데이터에 대한 접근입니다.", flag: false });
     }
 
     let session = {};
