@@ -288,7 +288,7 @@ exports.getUserPostListPage = async (req, res) => {
       const sellerId = seller.sellerId;
 
       sellerPosts = await Post.findAll({
-        attributes: ["postId", "postTitle", "productPrice"],
+        attributes: ["postId", "postTitle", "productPrice", "sellStatus"],
         where: { sellerId },
         include: [
           {
@@ -427,7 +427,7 @@ exports.getWishlistPage = async (req, res) => {
       include: [
         {
           model: Post,
-          attributes: ["postTitle", "productPrice"],
+          attributes: ["postTitle", "productPrice", "sellStatus"],
           include: [
             {
               model: Category,
