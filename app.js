@@ -5,6 +5,9 @@ const sessionMiddleware = require("./middlewares/session");
 const { sequelize } = require("./models");
 const loggingMiddleware = require("./middlewares/winston");
 
+require("dotenv/config");
+const config = require("./config/key");
+
 // CORS 설정
 const corsOptions = {
   origin: "http://localhost:3000", // React 앱의 URL
@@ -45,7 +48,7 @@ dotenv.config({
 const port = process.env.PORT || 5000;
 
 // router 설정
-app.use("/", indexRouter);
+app.use("/main", indexRouter);
 app.use("/cart", cartRouter);
 app.use("/user", userRouter);
 app.use("/posts", postRouter);
@@ -58,6 +61,10 @@ app.use("/sellers", sellerRouter);
 app.use("/comments", commentRouter);
 app.use("/wishlist", wishlistRouter);
 app.use("/addresses", addressRouter);
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../build/build", "index.html"));
+});
 
 app.get("*", (req, res) => {
   res.send("404 Not Found");
