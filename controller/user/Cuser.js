@@ -1,4 +1,4 @@
-const { where } = require("sequelize");
+const { Op } = require('sequelize');
 const {
   User,
   Address,
@@ -9,6 +9,7 @@ const {
   Manager,
   sequelize,
 } = require("../../models/index");
+const { transporter, mailOptions } = require("../../middlewares/postman");
 const { hashPw, comparePw } = require("../../utils/passwordUtils");
 
 // 로그인
@@ -231,7 +232,27 @@ exports.userRegister = async (req, res) => {
     await t.commit();
 
     // 성공 응답 시 userPw 제외
-    if (newUser && newAdress && newTermsAgree)
+    if (newUser && newAdress && newTermsAgree){
+      const oneDayAgo = new Date(new Date() - 24 * 60 * 60 * 1000);
+      const recentSignUps = await User.count({
+        where: {
+          createdAt: {
+            [Op.gte]: oneDayAgo
+          }
+        }
+      });
+  
+      if (recentSignUps < 200) {
+        try {
+          mailOptions.to = newUser.email;
+
+          await transporter.sendMail(mailOptions);
+          console.log('Welcome email sent successfully');
+        } catch (emailError) {
+          console.error('Error sending welcome email:', emailError);
+        }
+      }
+
       res.status(200).json({
         message: "사용자가 성공적으로 회원가입되었습니다.",
         user: (({ userPw, ...userWithoutPw }) => userWithoutPw)(
@@ -240,6 +261,7 @@ exports.userRegister = async (req, res) => {
         adress: newAdress.toJSON(),
         termsAgree: newTermsAgree.toJSON(),
       });
+    }
     else res.status(500).json({ result: false, error: "회원가입 실패" });
   } catch (error) {
     await t.rollback();

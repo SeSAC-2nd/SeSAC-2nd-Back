@@ -12,7 +12,6 @@ const corsOptions = {
   origin: "http://localhost:3000", // React 앱의 URL
   credentials: true,
   // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-
 };
 
 // CORS 미들웨어 사용, router 위에다가 선언
