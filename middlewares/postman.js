@@ -62,7 +62,7 @@ function getHtmlTemplate() {
                                 <table role="presentation" style="margin: 0 auto;">
                                     <tr>
                                         <td style="padding: 10px;">
-                                            <a href="${process.env.REACT_APP_API_URL}" style="background-color: #e3a5c7; border: 1px solid #e3a5c7; padding: 12px 25px; color: white; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold; transition: background-color 0.3s;">Liebling 로</a>
+                                            <a href="${process.env.REACT_APP_API_URL}" style="background-color: #e3a5c7; border: 1px solid #e3a5c7; padding: 12px 25px; color: white; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold; transition: background-color 0.3s;">Liebling</a>
                                         </td>
                                     </tr>
                                 </table>
