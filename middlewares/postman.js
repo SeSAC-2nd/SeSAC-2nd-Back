@@ -78,8 +78,9 @@ function getHtmlTemplate() {
 }
 
   // 이메일 옵션 설정
+
   const mailOptions = {
-    from: process.env.LIEBLINGS_EMAIL,
+    from: `"리블링스" <${process.env.LIEBLINGS_EMAIL}>`,
     to: '',
     html: getHtmlTemplate()  // HTML 콘텐츠
   };
