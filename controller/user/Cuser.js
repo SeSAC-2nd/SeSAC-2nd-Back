@@ -233,23 +233,25 @@ exports.userRegister = async (req, res) => {
 
     // 성공 응답 시 userPw 제외
     if (newUser && newAdress && newTermsAgree){
-      const oneDayAgo = new Date(new Date() - 24 * 60 * 60 * 1000);
-      const recentSignUps = await User.count({
-        where: {
-          createdAt: {
-            [Op.gte]: oneDayAgo
+      if( newTermsAgree.isOptionalAgreed ){
+        const oneDayAgo = new Date(new Date() - 24 * 60 * 60 * 1000);
+        const recentSignUps = await User.count({
+          where: {
+            createdAt: {
+              [Op.gte]: oneDayAgo
+            }
           }
-        }
-      });
-  
-      if (recentSignUps < 200) {
-        try {
-          mailOptions.to = newUser.email;
+        });
+    
+        if (recentSignUps < 200) {
+          try {
+            mailOptions.to = newUser.email;
 
-          await transporter.sendMail(mailOptions);
-          console.log('Welcome email sent successfully');
-        } catch (emailError) {
-          console.error('Error sending welcome email:', emailError);
+            await transporter.sendMail(mailOptions);
+            console.log('Welcome email sent successfully');
+          } catch (emailError) {
+            console.error('Error sending welcome email:', emailError);
+          }
         }
       }
 
