@@ -233,35 +233,37 @@ exports.userRegister = async (req, res) => {
 
     // 성공 응답 시 userPw 제외
     if (newUser && newAdress && newTermsAgree){
-      if (newTermsAgree.isOptionalAgreed) {
-        const oneDayAgo = new Date(new Date() - 24 * 60 * 60 * 1000);
-        const recentSignUps = await User.count({
-          where: {
-            createdAt: {
-              [Op.gte]: oneDayAgo
+      setImmediate(async () => {
+        if (newTermsAgree.isOptionalAgreed) {
+          const oneDayAgo = new Date(new Date() - 24 * 60 * 60 * 1000);
+          const recentSignUps = await User.count({
+            where: {
+              createdAt: {
+                [Op.gte]: oneDayAgo
+              }
             }
-          }
-        });
-    
-        if (recentSignUps < 200) {
-          try {
-            const emailOptionsToSend = {
-              ...mailOptions,
-              to: newUser.email,
-              subject: '리블링스 회원가입을 환영합니다!'
-            };
+          });
+      
+          if (recentSignUps < 200) {
+            try {
+              const emailOptionsToSend = {
+                ...mailOptions,
+                to: newUser.email,
+                subject: '리블링스 회원가입을 환영합니다!'
+              };
 
-            await transporter.sendMail(emailOptionsToSend);
-            console.log(`이메일이 성공적으로 전송되었습니다. ${newUser.email}`);
-          } catch (emailError) {
-            console.error(`이메일을 전송하는데 실패했습니다. ${newUser.email}:`, emailError);
+              await transporter.sendMail(emailOptionsToSend);
+              console.log(`이메일이 성공적으로 전송되었습니다. ${newUser.email}`);
+            } catch (emailError) {
+              console.error(`이메일을 전송하는데 실패했습니다. ${newUser.email}:`, emailError);
+            }
+          } else {
+            console.log(`이메일이 전송되지 않았습니다. ${newUser.email}. 최근 가입자수가 200명을 초과했습니다.`);
           }
         } else {
-          console.log(`이메일이 전송되지 않았습니다. ${newUser.email}. 최근 가입자수가 200명을 초과했습니다.`);
+          console.log(`이메일이 전송되지 않았습니다. ${newUser.email}. 사용자가 약관에 동의하지 않았습니다.`);
         }
-      } else {
-        console.log(`이메일이 전송되지 않았습니다. ${newUser.email}. 사용자가 약관에 동의하지 않았습니다.`);
-      }
+      });
 
       res.status(200).json({
         message: "사용자가 성공적으로 회원가입되었습니다.",
